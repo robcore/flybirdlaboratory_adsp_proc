@@ -1,0 +1,89 @@
+#===============================================================================
+#                    Copyright 2009 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# Time RAPI Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/rfsa_client" 
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_DATA',
+   'MODEM_HDR',
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'MODEM_DATA',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi(['RFSA',], area='QMIMSGS')
+
+env.RequireRestrictedApi(CBSP_API)
+
+if env.has_key('MODEM_PROC'):
+  env.Append(CPPDEFINES = ["RFSA_MPSS"])
+  env.Append(CPPDEFINES = ["FEATURE_RFSA_MPSS_XPU_LOCK"])
+elif env.has_key('ADSP_PROC'):
+  env.Append(CPPDEFINES = ["RFSA_ADSP"])
+
+#-------------------------------------------------------------------------------
+# Add remotefs init function to rcinit - Use for testing thread only
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+   RCINIT_RFSA = ['CORE_QDSP6_SW'] 
+   env.AddRCInitFunc(
+      RCINIT_RFSA,
+      {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'rfsa_client',
+      'init_function'              : 'rfsa_client_rc_init',
+      'dependencies'               : ['ipc_router','qmi_fw']
+      })
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+RFA_CLI_SOURCES = [
+   '${BUILDPATH}/src/rfsa_client.c',
+   '${BUILDPATH}/src/rfsa_helper.c',
+   '${BUILDPATH}/src/rfsa_lock.c',
+   '${BUILDPATH}/src/rfsa_memory.c',
+   '${BUILDPATH}/src/rfsa_qmi_core.c',
+]
+rfa_cli_obj = env.Object(RFA_CLI_SOURCES)
+rfa_cli_lib = env.Library('${BUILDPATH}/rfa_cli', rfa_cli_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(['CORE_QDSP6_SW', 'CORE_GSS', 'CORE_QDSP6_SENSOR_SW'], rfa_cli_lib)
+

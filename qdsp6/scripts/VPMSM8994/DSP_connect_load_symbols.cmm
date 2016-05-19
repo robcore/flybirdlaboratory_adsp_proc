@@ -1,0 +1,192 @@
+;****************************************************************
+; filename: DSP_connect_loadDSP.cmm
+; 	this script is utilized to connect to VPMSM8974, load SMD data structure and load DSP image
+; please enter
+;	1. the Port ID : used to connect VPMSM8974	
+;	   required
+;	2. SMD FLAG :  used to indicate to load share memory data structure
+;	   optional, default value is not loading SMD
+; usage:
+; 	DSP_connect_loadDSP <Port number> <SMD>
+; example:
+; 	DSP_connect_loadDSP 5000 SMD
+; 	DSP_connect_loadDSP 5001
+;****************************************************************
+
+entry &p_Port_ID &SMD_flag
+global &Qube_va
+global &Qube_pa
+print "You have entered &p_Port_ID as Port ID to connect VPM8974"
+
+TOOLBAR ON
+STATUSBAR ON
+;WINPAGE.RESET
+
+;******************************************************************
+; Reset QDSP6 through intercomm command
+;******************************************************************
+
+;----------------------------------------------------------------------------
+; Choose hex mode for input
+;----------------------------------------------------------------------------
+radix hex
+area
+area.select
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+sys.cpu HexagonV55
+;----------------------------------------------------------------------------
+; Attach to the Virtio simulation
+;----------------------------------------------------------------------------
+sys.mcdconfig arch=v55 port=&p_Port_ID simargs=""
+sys.mode.attach
+
+;----------------------------------------------------------------------------
+; Setup look and feel
+;----------------------------------------------------------------------------
+
+;----------------------------------------------------------------------------
+; Print banner
+;----------------------------------------------------------------------------
+print "VPMSM8994: LPASS"
+title "VPMSM8994: LPASS_QDSP6"
+;----------------------------------------------------------------------------
+; Open the register set
+;----------------------------------------------------------------------------
+register /spotlight
+
+;----------------------------------------------------------------------------
+; Open the source listing
+;----------------------------------------------------------------------------
+data.list
+
+;----------------------------------------------------------------------------
+;Recall and Define History File
+;----------------------------------------------------------------------------
+autostore , history
+
+sYmbol.SourcePath.reset
+
+;----------------------------------------------------------------------------
+; load SMD structure	
+;----------------------------------------------------------------------------
+if "&SMD_flag"=="SMD"
+(
+	print "loading SMD structure ......."
+   d.load.binary .\qdsp6\scripts\VPMSM8994\smem.bin 0x06A00000 /noclear /nosymbol
+	print "SMD structure loaded. Done"
+)
+;----------------------------------------------------------------------------
+; load DSP Image
+;----------------------------------------------------------------------------
+
+// Load the main .PBN file.
+//D.LOAD.ELF .\build\ms\bootimage_relocflag_withdummyseg.pbn /strippart "adsp_proc" /sourcepath "./adsp_proc" /nosymbol
+// Load the main .ELF file source code.
+//D.LOAD.ELF .\build\ms\M8994AAAAAAAAQ1234.elf /strippart "adsp_proc" /sourcepath "./adsp_proc" /nocode
+
+wait.4s
+
+// Prompt the user for the ADSP .ELF file.  
+PRINT "Point to the ADSP .elf file."
+DIALOG.FILE *.elf
+ENTRY &ELFILE
+
+// Prompt the user for the ADSP .PBN file.  
+PRINT "Point to the ADSP .pbn file."
+DIALOG.FILE *.pbn
+ENTRY &PBNFILE
+
+PRINT "Point to the SENSOR .elf file."
+DIALOG.FILE *SENSOR.elf
+ENTRY &SNSELFILE
+
+
+// Parse the .ELF path into different variables, that we will use.
+&DEVCFG_ELF=STRING.CUT("&ELFILE",-4)+"_DEVCFG.elf"
+&ADSP_BUILDMSDIR=OS.FILE.PATH(&ELFILE)
+&ADSP_COREDIR="&ADSP_BUILDMSDIR\..\..\core"
+&ADSP_BUILDROOT="&ADSP_BUILDMSDIR\..\..\.."
+
+// Load the main .PBN file.
+D.LOAD.ELF &PBNFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT/adsp_proc" /nosymbol
+// Load the main .ELF file source code.
+D.LOAD.ELF &ELFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT/adsp_proc" /nocode
+
+
+print "DSP Image loaded. Done"
+
+//get the virtual address/physical address for later to create MMU list
+&Qube_va=address.offset(start);
+&Qube_pa=0x0d100000
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+
+b.s PrngML_getdata_lite
+g
+wait.20s
+
+
+;----------------------------------------------------------------------------
+; set breakpoints
+;----------------------------------------------------------------------------
+b.s main /onchip
+
+mmu.off
+mmu.tlb.scan
+mmu.on
+
+b.s QURTK_handle_error /p
+b.s QURTK_tlb_crash /p
+b.s QURTK_error /p
+b.s err_fatal_handler /p
+
+
+//D.S D:&Qube_pa+0x30 %LE %LONG 1
+//D.S D:&Qube_pa+0x34 %LE %LONG 1
+//D.S D:&Qube_pa+0x38 %LE %LONG 1
+
+;TERM.METHOD ANGEL QURTK_handle_trap0
+;b.s QURTK_handle_trap0 /onchip
+; This is where your printf messages will be displayed
+;term.gate
+
+//r.s PC 0x0d100000
+
+
+V g_prng_config_enable = 0x1
+V that_rpm_guy_is_crazy = 0x1
+V g_sleepAllowLowPowerModes = 0x0
+D.S 0xFC4A1000 0x1
+// This is the GFMUX
+D.S D:0xFE200020 %LE %LONG 0x00000302
+D.S D:0xFE200034 %LE %LONG 0x0000140B
+
+// Turn on AHB bus for spm_init().  Provided by David Fellows.
+D.S D:0xFC4011C8 %LE %LONG 0x20008001
+D.S D:0xFC4011C0 %LE %LONG 0x00004FF1
+D.S D:0xFC4011C4 %LE %LONG 0x00004FF1
+D.S D:0xFE022004 %LE %LONG 0x00000001
+D.S D:0xFE022000 %LE %LONG 0x00000FF1
+
+b.dis PrngML_getdata_lite
+
+// Load the sensors .ELF file source code.   temp put it here after PrngML_getdata_lite to avoide ambiguous symbols
+D.LOAD.ELF &SNSELFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT/adsp_proc" /nocode /noclear
+
+//Run to main()
+go
+
+wait !run()
+
+//workaround to by pass the deadlock issue between sensor thread and elite_framework_start   
+V pfnRNG[1] = pfnRNG[2]
+
+do .\qdsp6\scripts\VPMSM8994\DSP_load_osam.cmm
+
+// Setup MMU and then Set ADSP-standalone config flag for bypassing RPM communication
+
+end
+

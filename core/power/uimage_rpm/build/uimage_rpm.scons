@@ -1,0 +1,104 @@
+#===============================================================================
+#
+# RPM build script
+#
+# GENERAL DESCRIPTION
+#    Builds the rpm library for ADSP uImage.
+#
+# Copyright (c) 2012 - 2014 by QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/power/uimage_rpm/build/uimage_rpm.scons#1 $
+#
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Target Checks
+#-------------------------------------------------------------------------------
+uimage_rpm_targets = ['8994']
+if not env['MSM_ID'] in uimage_rpm_targets:
+   env.PrintWarning('uImage RPM driver is not available for this target.')
+   Return()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within uImage
+#-------------------------------------------------------------------------------
+UIMAGE_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   # required for micro ulog
+   'KERNEL',
+]
+
+env.RequirePublicApi(UIMAGE_API)
+env.RequireRestrictedApi(UIMAGE_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+env.PublishPrivateApi('UIMAGE_RPM', [
+   '${BUILD_ROOT}/core/power/uimage_rpm/inc',   
+   ]
+)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+RPM_UIMAGE_SOURCES = [
+   '${BUILDPATH}/uimage_rpm.c',
+   '${BUILDPATH}/uimage_rpm_smd.c',
+   '${BUILDPATH}/uimage_rpm_log.c',
+   '${BUILDPATH}/uimage_rpm_resource_data.c',
+]
+
+rpm_uimage_obj = env.Object(RPM_UIMAGE_SOURCES)
+rpm_uimage_lib = env.Library('${BUILDPATH}/rpm_uimage', rpm_uimage_obj)
+tags = ['CORE_QDSP6_SW']
+
+#-------------------------------------------------------------------------------
+# Tag library to TCM island image.
+#-------------------------------------------------------------------------------
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(tags, rpm_uimage_lib)
+
+#-------------------------------------------------------------------------------
+# Add library to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage(['CORE_QDSP6_SW'], rpm_uimage_lib)
+
+#-------------------------------------------------------------------------------
+# User RCINIT
+#-------------------------------------------------------------------------------
+RCINIT_IMG = ['CORE_QDSP6_SW']
+
+if 'USES_RCINIT' in env:
+    env.AddRCInitFunc(
+        RCINIT_IMG,
+        {
+          'sequence_group'             : 'RCINIT_GROUP_0',          # required
+          'init_name'                  : 'uImage_rpm',              # required
+          'init_function'              : 'uImage_rpm_init',         # required
+        }
+    )
+

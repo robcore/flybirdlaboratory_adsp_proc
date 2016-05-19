@@ -1,0 +1,60 @@
+<!-- 
+#===============================================================================
+#
+# custom_static_capi_modules.xml
+#
+# GENERAL DESCRIPTION
+#    This file will contain the custom CAPI module information. If a CAPI module 
+#	 need to be integrated with Elite framework then this file need to be updated
+#	 with that CAPI module information.
+#
+# USAGE
+#    1) Integration using command line
+#		If a CAPI module need to be integrated using command line then, this xml 
+#		file should be updated manually.
+#
+#    2) Integration using Hexagon IDE
+#		If a CAPI module need to be integrated using IDE then, need to specify the
+#		module details using GUI provided by IDE. IDE will update this xml file 
+#		automatically.
+#
+# Copyright (c) 2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#===============================================================================
+-->
+
+<!--<static_modules num_modules="Specify the Max. number of modules that are going to add into AMDB">
+		<module type="specify the current module type ie. CAPI">
+			<mod_fmt_id_name>Specify the module ID name in upper case or lower case</mod_fmt_id_name>
+			<mod_fmt_id_value>Specify the module ID value</mod_fmt_id_value>
+			<mod_capi_header_file>Specify the name of the module CAPI header file name</mod_capi_header_file>
+			<mod_get_size_f>Specify the module get size API name</mod_get_size_f>
+			<mod_ctor_f>Specify the module init API name</mod_ctor_f>
+		</module>
+	</static_modules> -->
+
+<!-- Example Module Information for two CAPI Modules -->
+<!--<static_modules num_modules="2">
+		<module type="CAPI">
+			<mod_fmt_id_name>ASM_MEDIA_FMT_SAMPLE_DECODER</mod_fmt_id_name>
+			<mod_fmt_id_value>0X100100A0</mod_fmt_id_value>
+			<mod_capi_header_file>capi_sample_decode.h</mod_capi_header_file>
+			<mod_get_size_f>capi_sample_decode_getsize</mod_get_size_f>
+			<mod_ctor_f>capi_sample_decode_ctor</mod_ctor_f>
+		</module>
+		<module type="CAPI">
+			<mod_fmt_id_name>ASM_MEDIA_FMT_DECODER</mod_fmt_id_name>
+			<mod_fmt_id_value>0X100100B0</mod_fmt_id_value>
+			<mod_capi_header_file>capi_decode.h</mod_capi_header_file>
+			<mod_get_size_f>capi_decode_getsize</mod_get_size_f>
+			<mod_ctor_f>capi_decode_ctor</mod_ctor_f>
+		</module>
+	</static_modules> -->
+
+<!-- Note: Donot change the tag names inside elements
+	 If any wrong tag name is used then custom_capi_integration.py script will return an ERROR -->
+
+<static_modules num_modules="0">
+</static_modules>

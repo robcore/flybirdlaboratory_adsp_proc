@@ -1,0 +1,1095 @@
+;****************************************************************
+; filename: DSP_connect_loadDSP.cmm
+; 	this script is utilized to connect to VPMSM8974, load SMD data structure and load DSP image
+; please enter
+;	1. Memory dump binary file	
+;	2. Start address for memory dump
+;       3. Start address for DSP image
+;       4. Memory dump for SMD dump
+;       5. Start address for SMD dump
+; usage:
+; 	DSP_connect_loadDSP <file 1> <address 1> <addresss 2> <file 2> <address 1>
+; example:
+; 	DSP_connect_loadDSP memdump.bin 0x6c00000 0x6400000 smd.bin 0xfa00000
+;****************************************************************
+
+entry &dspfile &UniqueNumber &dumpaddr &dspaddr &OutputPath &ADSP_BUILDROOT &Target_Name &CurrentDirectory &openDSPpath &smdfile &smdaddr 
+global &Qube_va_guestos
+global &Qube_pa_guestos
+global &ELF
+global &SensorsELF
+global &AudioELF
+TOOLBAR ON
+STATUSBAR ON
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+if ("&Target_Name"=="8994")
+(
+    print "If HexagonV56 is not available, please update trace version to support HexagonV56 for 8994"
+    sys.cpu HexagonV56
+    print "Please ignore the above message as V56 seems to be supported."
+)
+else if ("&Target_Name"=="8992")
+(
+    print "If HexagonV56 is not available, please update trace version to support HexagonV56 for 8992"
+    sys.cpu HexagonV56
+    print "Please ignore the above message as V56 seems to be supported."
+)
+else if ("&Target_Name"=="8952")
+(
+    print "If HexagonV56 is not available, please update trace version to support HexagonV56 for 8952"
+    sys.cpu HexagonV56
+    print "Please ignore the above message as V56 seems to be supported."
+)
+else if ("&Target_Name"=="8976")
+(
+    print "If HexagonV56 is not available, please update trace version to support HexagonV56 for 8976"
+    sys.cpu HexagonV56
+    print "Please ignore the above message as V56 seems to be supported."
+)
+else if ("&Target_Name"=="8996")
+(
+    print "If HexagonV60 is not available, please update trace version to support HexagonV60 for 8996"
+    sys.cpu HexagonV60
+    print "Please ignore the above message as V60 seems to be supported."
+)
+else
+(
+    sys.cpu HexagonV5
+)
+sys.up
+global &TCM_BASE
+
+&TCM_BASE=0xfe400000
+;----------------------------------------------------------------------------
+; Attach to the Virtio simulation
+;----------------------------------------------------------------------------
+&command="python &CurrentDirectory\LPMPath.py &dspfile &OutputPath_temp"
+OS.Hidden &command
+OPEN #1 "&OutputPath_temp\LPMPath.txt" /READ
+READ #1 %line &LPMPath
+CLOSE #1
+print "##########################"
+print "Loading Binary : &dspfile"
+if "&load_dump_full"!="False"
+(
+    if OS.FILE(&load_dump_full\load.cmm)
+    (
+        cd &load_dump_full
+        do load.cmm
+        cd &CurrentDirectory
+    )
+    else
+    (
+        enddo
+    )
+)
+else
+(
+    if "&dumpaddr"==""
+    (
+       exit
+    )
+    else 
+    (
+        if &choice==1
+        (
+            if OS.FILE(.\build\ms\M8x10AAAAAAAAQ1234.elf)
+            (
+                ;--------If 8x10 load complete Ram dump . This is required due to SMMU-------
+                d.load.binary &dspfile a:&dumpaddr
+            )
+            else
+            (
+                if (&dumpaddr==0)
+                (
+                    
+                    &dspaddr_temp=(&dspaddr)&0x7FFFFFFF
+                    if OS.FILE(.\build\ms\M8996AAAAAAAAQ1234.elf)
+                    (
+                        d.load.binary &dspfile a:&dspaddr++0x01800000 /SKIP (&dspaddr_temp)
+                    )
+                    else if (("&Target_Name"=="8996")||("&slpi"=="True"))
+                    (
+                        d.load.binary &dspfile a:&dspaddr++0x01800000 /SKIP (&dspaddr_temp)
+                    )
+                    else if ("&Target_Name"=="8976")
+                    (
+                        d.load.binary &dspfile a:&dspaddr++0x01800000 /SKIP (&dspaddr_temp)
+                    )
+                    else if ("&Target_Name"=="8952")
+                    (
+                        d.load.binary &dspfile a:&dspaddr++0x01800000 /SKIP (&dspaddr_temp)
+                    )
+                    else
+                    (
+                        d.load.binary &dspfile a:&dspaddr++0x01800000 /SKIP &dspaddr
+                    )
+                    ;----------------Only taking care of 8x26 and 8974 smem regions	
+                    ;----------------8x26, 8974 ,8084 - 0xfa00000	
+                    ;----------------8994 - cc0_0000
+                    ;----------------8x10 - 0xd900000
+                    ;----------------9x35- 1100000
+                    if OS.FILE(.\build\ms\M9x35AAAAAAAAQ1234.elf)
+                    (
+                        d.load.binary &dspfile a:0x1100000++0x0200000 /SKIP 0x1100000
+                    )
+                    else
+                    (
+                        if ("&slpi"=="True")
+                        (
+                            ;do nothing,it should be code for smem loading
+                        )
+                        else
+                        (
+                            d.load.binary &dspfile a:0xfa00000++0x0200000 /SKIP 0xfa00000
+                        )
+                    )
+                )
+                else
+                (
+                    d.load.binary &dspfile a:&dumpaddr
+                )
+            )
+        )
+        else if &choice==2
+        (
+            d.load.elf &dspfile 
+        )
+        else
+        (
+            print %ERROR "!!!!!!!!!!!Invalid Choice! Dump is not Loaded!!!!!!!!!!!!!"
+            exit
+        )
+    )
+)    
+print "Loading DDRCS0.BIN Binary Done"
+cd &LPMPath
+if OS.FILE(.\LPM.bin)
+(
+    d.load.binary LPM.bin a:0xfe090000 /noclear
+)
+
+if ("&slpi"=="True")
+(
+    &file="&OutputPath\slpi_Dump.bin"
+    if OS.FILE("&file")
+    (
+        RM "&file"
+    )    
+    d.save.binary &OutputPath\slpi_Dump.bin a:&dspaddr++0x01e00000
+    print "Save slpi_Dump.bin Done"
+)
+else
+(
+    &file="&OutputPath\Adsp_Dump.bin"
+    if OS.FILE("&file")
+    (
+        RM "&file"
+    )    
+    d.save.binary &OutputPath\Adsp_Dump.bin a:&dspaddr++0x01e00000
+    print "Save Adsp_Dump.bin Done"
+)
+
+local &command
+cd &ADSP_BUILDROOT
+print "##########################"
+print "Checking TimeStamps in Dumps and ELF...Please wait..."
+
+if "&slpi"=="True"
+(
+    &command="python &CurrentDirectory\strings_sensor.py &OutputPath\slpi_Dump.bin &OutputPath_temp\DumpTimeStamp.txt"
+    Os.Hidden &command
+    if "&openDSPpath"==""
+    (
+        &command="python &CurrentDirectory\strings_sensor.py &ADSP_BUILDROOT\build\ms\M8996AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        Os.Hidden &command
+    )
+    else
+    (
+        &command="python &CurrentDirectory\strings_sensor.py &openDSPpath\M8996AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        Os.Hidden &command
+    )
+    &command="python &CurrentDirectory\TimeStampCheck_slpi.py &OutputPath_temp"
+    Os.Hidden &command
+    OPEN #1 "&OutputPath_temp\CheckDumpStatus.txt" /READ
+    READ #1 %line &DumpCheckFlag
+    CLOSE #1 
+    printer.file.close
+    if (&DumpCheckFlag==0)
+    (
+        if "&asha"!="True"
+        (
+            dialog.message "Time Stamp in Dumps and elf file are not Matching -> Level1 of validating Dumps Failed"
+        )    
+        print %ERROR "Time Stamp in Dumps and ELF File are not Matching -> Level1 of validating Dumps Failed"
+    )
+    else
+    (
+        ;dialog.message "Time Stamp in Dumps and elf file are Matched-> Level1 of validating Dumps Passed"
+        print "Time Stamp in Dumps and ELF File are Matched -> Level1 of Validating Dumps Passed"
+    )
+)
+else
+(
+    if "&openDSPpath"==""
+    (
+        &command="python &CurrentDirectory\strings.py &OutputPath\Adsp_Dump.bin &OutputPath_temp\DumpTimeStamp.txt"
+        Os.Hidden &command
+        if OS.FILE(.\build\ms\M8974AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8974AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(.\build\ms\M8x26AAAAAAAAQ1234.elf)
+        (	    
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8x26AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(.\build\ms\M8x10AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8x10AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(.\build\ms\M9x25AAAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M9x25AAAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(.\build\ms\M8084AAAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8084AAAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(.\build\ms\M9x35AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M9x35AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(.\build\ms\M8994AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8994AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(.\build\ms\M8992AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8992AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(.\build\ms\M8952AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8952AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(.\build\ms\M8976AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8976AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(.\build\ms\M8996AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &ADSP_BUILDROOT\build\ms\M8996AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+            
+        Os.Hidden &command
+        &command="python &CurrentDirectory\TimeStampCheck.py &OutputPath_temp"
+        Os.Hidden &command
+        OPEN #1 "&OutputPath_temp\CheckDumpStatus.txt" /READ
+        READ #1 %line &DumpCheckFlag
+        CLOSE #1 
+        printer.file.close
+        if (&DumpCheckFlag==0)
+        (
+            if "&asha"!="True"
+            (
+                dialog.message "Time Stamp in Dumps and elf file are not Matching -> Level1 of validating Dumps Failed"
+            )    
+            print %ERROR "Time Stamp in Dumps and ELF File are not Matching -> Level1 of validating Dumps Failed"
+        )
+        else
+        (
+            ;dialog.message "Time Stamp in Dumps and elf file are Matched-> Level1 of validating Dumps Passed"
+            print "Time Stamp in Dumps and ELF File are Matched -> Level1 of Validating Dumps Passed"
+        )
+    )
+    else
+    (
+        &command="python &CurrentDirectory\strings.py &OutputPath\Adsp_Dump.bin &OutputPath_temp\DumpTimeStamp.txt"
+        Os.Hidden &command
+        if OS.FILE(&openDSPpath\M8974AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8974AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(&openDSPpath\M8x26AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8x26AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(&openDSPpath\M8x10AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8x10AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(&openDSPpath\M9x25AAAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M9x25AAAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(&openDSPpath\M8084AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8084AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(&openDSPpath\M9x35AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M9x35AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(&openDSPpath\M8994AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8994AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(&openDSPpath\M8992AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8992AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )
+        else if OS.FILE(&openDSPpath\M8952AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8952AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(&openDSPpath\M8976AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8976AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else if OS.FILE(&openDSPpath\M8996AAAAAAAAQ1234.elf)
+        (
+            &command="python &CurrentDirectory\strings.py &openDSPpath\M8996AAAAAAAAQ1234.elf &OutputPath_temp\DumpTimeStamp.txt"
+        )	
+        else
+        (
+            &command="python &CurrentDirectory\targetname_elfname.py &Target_Name &OutputPath_temp\elfname.txt &OutputPath_temp\sensorelfname.txt"
+            Os.Hidden &command
+            OPEN #1 "&OutputPath_temp\elfname.txt" /READ
+            READ #1 %line &elfname
+            CLOSE #1
+            print %ERROR "&elfname.elf is  not present at location: &openDSPpath"
+            print %ERROR "If &elfname _reloc.elf is present rename to &elfname.elf."
+            print %ERROR "Also, rename other  &elfname _PDNAME_reloc.elf if any to  &elfname _PDNAME.elf"
+            print %ERROR "Re run the crashman command after renaming."
+            RETURN
+        )
+        Os.Hidden &command
+        &command="python &CurrentDirectory\TimeStampCheck.py &OutputPath_temp"
+        Os.Hidden &command
+        OPEN #1 "&OutputPath_temp\CheckDumpStatus.txt" /READ
+        READ #1 %line &DumpCheckFlag
+        CLOSE #1 
+        if (&DumpCheckFlag==0)
+        (
+            if "&asha"!="True"
+            (
+                dialog.message "Time Stamp in Dumps and elf file are not Matching -> Level1 of validating Dumps Failed" 
+            )    
+            print %ERROR "Time Stamp in Dumps and ELF File are not Matching -> Level1 of validating Dumps Failed"
+        )
+        else
+        (
+            ;dialog.message "Time Stamp in Dumps and elf file are Matched-> Level1 of validating Dumps Passed"
+            print "Time Stamp in Dumps and ELF File are Matched -> Level1 of Validating Dumps Passed"
+        )
+    )
+)
+if "&dspaddr"==""
+(
+    &dspaddr=&dumpaddr
+)
+
+if "&smdaddr"==""
+(
+) 
+else 
+(
+    d.load.binary &smdfile a:&smdaddr
+)
+
+;----------------------------------------------------------------------------
+; Print banner
+;----------------------------------------------------------------------------
+&command="perl &CurrentDirectory\Compare.pl &OutputPath_temp &UniqueNumber"
+Os.Hidden &command
+OPEN #1 "&OutputPath_temp\Compare.txt" /READ
+READ #1 %line &CompareFlag2
+CLOSE #1
+if (&CompareFlag2==1)
+(
+    print "Search for Duplicate Issue &Target_Name Dumps: &dspfile"
+    title "Search for Duplicate Issue &Target_Name Dumps: &dspfile"
+)
+else if (&CompareFlag2==2)
+(
+    print "&UniqueNumber &Target_Name Dumps: &dspfile"
+    title "&UniqueNumber &Target_Name Dumps: &dspfile"
+)
+else
+(
+    print "&Target_Name Dumps: &dspfile"
+    title "&Target_Name Dumps: &dspfile"
+)
+;----------------------------------------------------------------------------
+;Recall and Define History File
+;----------------------------------------------------------------------------
+autostore , history
+
+sYmbol.SourcePath.reset
+
+;----------------------------------------------------------------------------
+; load DSP Image
+;----------------------------------------------------------------------------
+cd &ADSP_BUILDROOT
+print "##########################"
+if OS.FILE(.\build\ms\M8974AAAAAAAAQ1234.elf)
+(
+    if OS.FILE(&openDSPpath\M8974AAAAAAAAQ1234.elf) 
+    (
+        print "8974 Loading ELF: &openDSPpath\M8974AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8974AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8974AAAAAAAAQ1234"
+        print "8974 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8974AAAAAAAAQ1234_SENSOR.elf) 
+        (
+            print "8974 Loading ELF: &openDSPpath\M8974AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8974AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8974AAAAAAAAQ1234_SENSOR"
+            print "8974 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8974 Loading ELF: .\build\ms\M8974AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8974AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8974AAAAAAAAQ1234"
+        print "8974 Loading ELF Done"
+        if OS.FILE(.\build\ms\M8974AAAAAAAAQ1234_SENSOR.elf) 
+        (
+            print "8974 Loading ELF: .\build\ms\M8974AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8974AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8974AAAAAAAAQ1234_SENSOR"
+            print "8974 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M8x26AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8x26AAAAAAAAQ1234.elf) 
+    (
+        print "8x26 Loading ELF: &openDSPpath\M8x26AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8x26AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8x26AAAAAAAAQ1234"
+        print "8x26 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8x26AAAAAAAAQ1234_SENSOR.elf) 
+        (
+            print "8x26 Loading ELF: &openDSPpath\M8x26AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8x26AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8x26AAAAAAAAQ1234_SENSOR"
+            print "8x26 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8x26 Loading ELF: .\build\ms\M8x26AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8x26AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8x26AAAAAAAAQ1234"
+        print "8x26 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8x26AAAAAAAAQ1234_SENSOR.elf) 
+        (
+            print "8x26 Loading ELF: .\build\ms\M8x26AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8x26AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8x26AAAAAAAAQ1234_SENSOR"
+            print "8x26 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M8x10AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8x10AAAAAAAAQ1234.elf) 
+    (
+        print "8x10 Loading ELF: &openDSPpath\M8x10AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8x10AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8x10AAAAAAAAQ1234"
+        print "8x10 Loading ELF Done"
+    )
+    else
+    (
+        print "8x10 Loading ELF: .\build\ms\M8x10AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8x10AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8x10AAAAAAAAQ1234"
+        print "8x10 Loading ELF Done"
+    )	
+)
+else if OS.FILE(.\build\ms\M8084AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8084AAAAAAAAQ1234.elf) 
+    (
+        print "8084 Loading ELF: &openDSPpath\M8084AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8084AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8084AAAAAAAAQ1234"
+        print "8084 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8084AAAAAAAAQ1234_SENSOR.elf) 
+        (
+            print "8084 Loading ELF: &openDSPpath\M8084AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8084AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8084AAAAAAAAQ1234_SENSOR"
+            print "8084 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8084 Loading ELF: .\build\ms\M8084AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8084AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8084AAAAAAAAQ1234"
+        print "8084 Loading ELF Done"
+        if OS.FILE(.\build\ms\M8084AAAAAAAAQ1234_SENSOR.elf) 
+        (
+            print "8084 Loading ELF: .\build\ms\M8084AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8084AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8084AAAAAAAAQ1234_SENSOR"
+            print "8084 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M8994AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8994AAAAAAAAQ1234.elf) 
+    (
+        print "8994 Loading ELF: &openDSPpath\M8994AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8994AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8994AAAAAAAAQ1234"
+        print "8994 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8994AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8994 Loading ELF: &openDSPpath\M8994AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8994AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8994AAAAAAAAQ1234_Sensor"
+            print "8994 Loading ELF Done"
+        )
+        &AudioELF="M8994AAAAAAAAQ1234"
+        if OS.FILE(&openDSPpath\M8994AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8994 Loading ELF: &openDSPpath\M8994AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf &openDSPpath\M8994AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8994AAAAAAAAQ1234_AUDIO"
+            print "8994 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8994 Loading ELF: .\build\ms\M8994AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8994AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8994AAAAAAAAQ1234"
+        print "8994 Loading ELF Done"
+        if OS.FILE(.\build\ms\M8994AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8994 Loading ELF: .\build\ms\M8994AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8994AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8994AAAAAAAAQ1234_Sensor"
+            print "8994 Loading ELF Done"
+        )
+        &AudioELF="M8994AAAAAAAAQ1234"
+        if OS.FILE(.\build\ms\M8994AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8994 Loading ELF: .\build\ms\M8994AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf .\build\ms\M8994AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8994AAAAAAAAQ1234_AUDIO"
+            print "8994 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M8992AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8992AAAAAAAAQ1234.elf) 
+    (
+        print "8992 Loading ELF: &openDSPpath\M8992AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8992AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8992AAAAAAAAQ1234"
+        print "8992 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8992AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8992 Loading ELF: &openDSPpath\M8992AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8992AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8992AAAAAAAAQ1234_Sensor"
+            print "8992 Loading ELF Done"
+        )
+        &AudioELF="M8992AAAAAAAAQ1234"
+        if OS.FILE(&openDSPpath\M8992AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8992 Loading ELF: &openDSPpath\M8992AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf &openDSPpath\M8992AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8992AAAAAAAAQ1234_AUDIO"
+            print "8992 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8992 Loading ELF: .\build\ms\M8992AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8992AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8992AAAAAAAAQ1234"
+        print "8992 Loading ELF Done"
+        if OS.FILE(.\build\ms\M8992AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8992 Loading ELF: .\build\ms\M8992AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8992AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8992AAAAAAAAQ1234_Sensor"
+            print "8992 Loading ELF Done"
+        )
+        &AudioELF="M8992AAAAAAAAQ1234"
+        if OS.FILE(.\build\ms\M8992AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8992 Loading ELF: .\build\ms\M8992AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf .\build\ms\M8992AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8992AAAAAAAAQ1234_AUDIO"
+            print "8992 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M8952AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8952AAAAAAAAQ1234.elf) 
+    (
+        print "8952 Loading ELF: &openDSPpath\M8952AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8952AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8952AAAAAAAAQ1234"
+        print "8952 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8952AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8952 Loading ELF: &openDSPpath\M8952AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8952AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8952AAAAAAAAQ1234_Sensor"
+            print "8952 Loading ELF Done"
+        )
+        &AudioELF="M8952AAAAAAAAQ1234"
+        if OS.FILE(&openDSPpath\M8952AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8952 Loading ELF: &openDSPpath\M8952AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf &openDSPpath\M8952AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8952AAAAAAAAQ1234_AUDIO"
+            print "8952 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8952 Loading ELF: .\build\ms\M8952AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8952AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8952AAAAAAAAQ1234"
+        print "8952 Loading ELF Done"
+        if OS.FILE(.\build\ms\M8952AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8952 Loading ELF: .\build\ms\M8952AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8952AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8952AAAAAAAAQ1234_Sensor"
+            print "8952 Loading ELF Done"
+        )
+        &AudioELF="M8952AAAAAAAAQ1234"
+        if OS.FILE(.\build\ms\M8952AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8952 Loading ELF: .\build\ms\M8952AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf .\build\ms\M8952AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8952AAAAAAAAQ1234_AUDIO"
+            print "8952 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M8976AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M8976AAAAAAAAQ1234.elf) 
+    (
+        print "8976 Loading ELF: &openDSPpath\M8976AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M8976AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8976AAAAAAAAQ1234"
+        print "8976 Loading ELF Done"
+        if OS.FILE(&openDSPpath\M8976AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8976 Loading ELF: &openDSPpath\M8976AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf &openDSPpath\M8976AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8976AAAAAAAAQ1234_Sensor"
+            print "8976 Loading ELF Done"
+        )
+        &AudioELF="M8976AAAAAAAAQ1234"
+        if OS.FILE(&openDSPpath\M8976AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8976 Loading ELF: &openDSPpath\M8976AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf &openDSPpath\M8976AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8976AAAAAAAAQ1234_AUDIO"
+            print "8976 Loading ELF Done"
+        )
+    )
+    else
+    (
+        print "8976 Loading ELF: .\build\ms\M8976AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M8976AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M8976AAAAAAAAQ1234"
+        print "8976 Loading ELF Done"
+        if OS.FILE(.\build\ms\M8976AAAAAAAAQ1234_SENSOR.elf)
+        (
+            print "8976 Loading ELF: .\build\ms\M8976AAAAAAAAQ1234_SENSOR.elf"
+            d.load.elf .\build\ms\M8976AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &SensorsELF="M8976AAAAAAAAQ1234_Sensor"
+            print "8976 Loading ELF Done"
+        )
+        &AudioELF="M8976AAAAAAAAQ1234"
+        if OS.FILE(.\build\ms\M8976AAAAAAAAQ1234_AUDIO.elf)
+        (
+            print "8976 Loading ELF: .\build\ms\M8976AAAAAAAAQ1234_AUDIO.elf"
+            d.load.elf .\build\ms\M8976AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+            &AudioELF="M8976AAAAAAAAQ1234_AUDIO"
+            print "8976 Loading ELF Done"
+        )
+    )	
+)
+else if OS.FILE(.\build\ms\M9x25AAAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M9x25AAAAAAAAAQ1234.elf) 
+    (
+        print "9x25 Loading ELF: &openDSPpath\M9x25AAAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M9x25AAAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M9x25AAAAAAAAAQ1234"
+        print "9x25 Loading ELF Done"
+    )
+    else
+    (
+        print "9x25 Loading ELF: .\build\ms\M9x25AAAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M9x25AAAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M9x25AAAAAAAAAQ1234"
+        print "9x25 Loading ELF Done"
+    )	
+)
+else if OS.FILE(.\build\ms\M9x35AAAAAAAAQ1234.elf)
+(
+	if OS.FILE(&openDSPpath\M9x35AAAAAAAAQ1234.elf) 
+    (
+        print "9x35 Loading ELF: &openDSPpath\M9x35AAAAAAAAQ1234.elf"
+        d.load.elf &openDSPpath\M9x35AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M9x35AAAAAAAAQ1234"
+        print "9x35 Loading ELF Done"
+    )
+    else
+    (
+        print "9x35 Loading ELF: .\build\ms\M9x35AAAAAAAAQ1234.elf"
+        d.load.elf .\build\ms\M9x35AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+        &ELF="M9x35AAAAAAAAQ1234"
+        print "9x35 Loading ELF Done"
+    )	
+)
+else if OS.FILE(.\build\ms\M8996AAAAAAAAQ1234.elf)
+(
+    if "&slpi"=="True"
+    (
+        if OS.FILE(&openDSPpath\M8996AAAAAAAAQ1234.elf) 
+        (
+            print "8996 Loading ELF: &openDSPpath\M8996AAAAAAAAQ1234.elf"
+            d.load.elf &openDSPpath\M8996AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "slpi_proc" /sourcepath "."        
+            &ELF="M8996AAAAAAAAQ1234"
+            print "8996 Loading ELF Done"
+            &AudioELF="M8996AAAAAAAAQ1234"
+            if OS.FILE(&openDSPpath\M8996AAAAAAAAQ1234_SENSOR.elf)
+            (
+                print "8996 Loading ELF: &openDSPpath\M8996AAAAAAAAQ1234_SENSOR.elf"
+                d.load.elf &openDSPpath\M8996AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "slpi_proc" /sourcepath "."
+                &AudioELF="M8996AAAAAAAAQ1234_SENSOR"
+                print "8996 Loading ELF Done"
+            )
+        )
+        else
+        (
+            print "8996 Loading ELF: .\build\ms\M8996AAAAAAAAQ1234.elf"
+            d.load.elf .\build\ms\M8996AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "slpi_proc" /sourcepath "."        
+            &ELF="M8996AAAAAAAAQ1234"
+            print "8996 Loading ELF Done"
+            &AudioELF="M8996AAAAAAAAQ1234"
+            if OS.FILE(.\build\ms\M8996AAAAAAAAQ1234_SENSOR.elf)
+            (
+                print "8996 Loading ELF: .\build\ms\M8996AAAAAAAAQ1234_SENSOR.elf"
+                d.load.elf .\build\ms\M8996AAAAAAAAQ1234_SENSOR.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "slpi_proc" /sourcepath "."
+                &AudioELF="M8996AAAAAAAAQ1234_SENSOR"
+                print "8996 Loading ELF Done"
+            )
+        )
+    )
+    else
+    (
+        if OS.FILE(&openDSPpath\M8996AAAAAAAAQ1234.elf) 
+        (
+            print "8996 Loading ELF: &openDSPpath\M8996AAAAAAAAQ1234.elf"
+            d.load.elf &openDSPpath\M8996AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."        
+            &ELF="M8996AAAAAAAAQ1234"
+            print "8996 Loading ELF Done"
+            &AudioELF="M8996AAAAAAAAQ1234"
+            if OS.FILE(&openDSPpath\M8996AAAAAAAAQ1234_AUDIO.elf)
+            (
+                print "8996 Loading ELF: &openDSPpath\M8996AAAAAAAAQ1234_AUDIO.elf"
+                d.load.elf &openDSPpath\M8996AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+                &AudioELF="M8996AAAAAAAAQ1234_AUDIO"
+                print "8996 Loading ELF Done"
+            )
+        )
+        else
+        (
+            print "8996 Loading ELF: .\build\ms\M8996AAAAAAAAQ1234.elf"
+            d.load.elf .\build\ms\M8996AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."        
+            &ELF="M8996AAAAAAAAQ1234"
+            print "8996 Loading ELF Done"
+            &AudioELF="M8996AAAAAAAAQ1234"
+            if OS.FILE(.\build\ms\M8996AAAAAAAAQ1234_AUDIO.elf)
+            (
+                print "8996 Loading ELF: .\build\ms\M8996AAAAAAAAQ1234_AUDIO.elf"
+                d.load.elf .\build\ms\M8996AAAAAAAAQ1234_AUDIO.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+                &AudioELF="M8996AAAAAAAAQ1234_AUDIO"
+                print "8996 Loading ELF Done"
+            )
+        )
+    )
+)
+
+printer.file &OutputPath_temp\dumpsloaddone.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area.view Crashman
+
+&check_path="&CurrentDirectory"
+&pgt_flag="False"
+if OS.FILE(&ADSP_BUILDROOT\core\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.t32)
+(
+    &check_path="&ADSP_BUILDROOT\core\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32"
+    &pgt_flag="True"
+)
+if OS.FILE(&ADSP_BUILDROOT\core\kernel\qurt\build\adsp_link\qdsp6\AAAAAAAA\install\ADSPv60MP\debugger\T32\qurt_model.t32)
+(
+    &check_path="&ADSP_BUILDROOT\core\kernel\qurt\build\adsp_link\qdsp6\AAAAAAAA\install\ADSPv60MP\debugger\T32"
+    &pgt_flag="True"
+)
+else if OS.FILE(&ADSP_BUILDROOT\core\kernel\qurt\build\adsp_link\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.t32)
+(
+    &check_path="&ADSP_BUILDROOT\core\kernel\qurt\build\adsp_link\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32"
+    &pgt_flag="True"
+)
+else if OS.FILE(&ADSP_BUILDROOT\core\kernel\qurt\build\slpi_root\qdsp6\AAAAAAAA\install\sensorsv60_v1\debugger\T32\qurt_model.t32)
+(
+    &check_path="&ADSP_BUILDROOT\core\kernel\qurt\build\slpi_root\qdsp6\AAAAAAAA\install\sensorsv60_v1\debugger\T32"
+    &pgt_flag="True"
+)
+else if OS.FILE(&ADSP_BUILDROOT\core\kernel\qurt\build\ssc_slpi_user\qdsp6\AAAAAAAA\install\sensorsv60\debugger\T32\qurt_model.t32)
+(
+    &check_path="&ADSP_BUILDROOT\core\kernel\qurt\build\ssc_slpi_user\qdsp6\AAAAAAAA\install\sensorsv60\debugger\T32"
+    &pgt_flag="True"
+)
+print "##########################"
+if ("&slpi"=="True")
+(
+    // initialize the variables first0x00c00078
+    mmu.off
+    mmu.reset
+    &Qube_va_guestos=0xf0100000
+    &Qube_pa_guestos=&dspaddr
+    if (Y.EXIST(\\M8996AAAAAAAAQ1234\Global\start))
+    (
+       &Qube_va_guestos=address.offset(\\M8996AAAAAAAAQ1234\Global\start)
+    )
+    print "DSP SensorPD1 address virtual=&Qube_va_guestos  physical=0x" &Qube_pa_guestos
+	print "mmu.create &Qube_va_guestos--(&Qube_va_guestos+0x1900000) &Qube_pa_guestos--(&Qube_pa_guestos+0x1900000)"
+	
+    mmu.create &Qube_va_guestos--(&Qube_va_guestos+0x1900000) &Qube_pa_guestos--(&Qube_pa_guestos+0x1900000)
+
+    mmu.on
+    
+    TASK.CONFIG &check_path\qurt_model.t32
+    MENU.ReProgram &check_path\qurt_model.men
+    
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    wp.task.pgt 
+    
+)
+else if ("&Target_Name"=="8994")
+(
+    mmu.off
+    mmu.reset
+    &Qube_va_guestos=address.offset(start)
+    &Qube_pa_guestos=&dspaddr
+    &Qube_va_island=0xf0000000
+    
+    mmu.create &Qube_va_guestos++0x1800000 &Qube_pa_guestos++0x1800000
+    mmu.on
+    task.config &check_path\qurt_model.t32
+    menu.rp &check_path\qurt_model.men
+
+    mmu.create 0xF0000000--0xF0010000 0xFE400000
+    // turn on mmu
+    PER.Set REG:0x12 %Long 0x9
+    DATA.COPY y.range(qurt_tcm_dump) a:&TCM_BASE
+    mmu.create &Qube_va_island--(&Qube_va_island+0x80000) &TCM_BASE
+    ;dialog.message "Loaded Page TABLES00"
+    // write task.pgt out
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    wp.task.pgt
+    ;dialog.message "Loaded Page TABLES11"
+    // remove forced mmu
+    mmu.delete &Qube_va_island--(&Qube_va_island+0x80000)
+    mmu.on
+)
+else if ("&Target_Name"=="8992")
+(
+    mmu.off
+    mmu.reset
+    &Qube_va_guestos=address.offset(start)
+    &Qube_pa_guestos=&dspaddr
+    &Qube_va_island=0xf0000000
+
+    mmu.create &Qube_va_guestos++0x1800000 &Qube_pa_guestos++0x1800000
+    mmu.on
+    
+    task.config &check_path\qurt_model.t32
+    menu.rp &check_path\qurt_model.men
+
+    mmu.create 0xF0000000--0xF0010000 0xFE400000
+    // turn on mmu
+    PER.Set REG:0x12 %Long 0x9
+    DATA.COPY y.range(qurt_tcm_dump) a:&TCM_BASE
+    mmu.create &Qube_va_island--(&Qube_va_island+0x80000) &TCM_BASE
+    ;dialog.message "Loaded Page TABLES00"
+    // write task.pgt out
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    wp.task.pgt
+    ;dialog.message "Loaded Page TABLES11"
+    // remove forced mmu
+    mmu.delete &Qube_va_island--(&Qube_va_island+0x80000)
+    ;dialog.message "Loaded Page TABLES1"
+    mmu.on
+)
+else if ("&Target_Name"=="8952")
+(
+    mmu.off
+    mmu.reset
+    &Qube_va_guestos=address.offset(start)
+    &Qube_pa_guestos=&dspaddr
+    &Qube_va_island=0xf0000000
+    
+    mmu.create &Qube_va_guestos++0x1800000 &Qube_pa_guestos++0x1800000
+    mmu.on
+
+    task.config &check_path\qurt_model.t32
+    menu.rp &check_path\qurt_model.men
+
+    mmu.create 0xF0000000--0xF0010000 0xFE400000
+    // turn on mmu
+    PER.Set REG:0x12 %Long 0x9
+    DATA.COPY y.range(qurt_tcm_dump) a:&TCM_BASE
+    mmu.create &Qube_va_island--(&Qube_va_island+0x80000) &TCM_BASE
+    ;dialog.message "Loaded Page TABLES00"
+    // write task.pgt out
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    ext.maxvsize 1000000
+    wp.task.pgt
+    ;dialog.message "Loaded Page TABLES11"
+    // remove forced mmu
+    mmu.delete &Qube_va_island--(&Qube_va_island+0x80000)
+    mmu.on
+)
+else if ("&Target_Name"=="8976")
+(
+    mmu.off
+    mmu.reset
+    &Qube_va_guestos=address.offset(start)
+    &Qube_pa_guestos=&dspaddr
+    &Qube_va_island=0xf0000000
+
+    mmu.create &Qube_va_guestos++0x1800000 &Qube_pa_guestos++0x1800000
+    mmu.on
+
+    task.config &check_path\qurt_model.t32
+    menu.rp &check_path\qurt_model.men
+
+    mmu.create 0xF0000000--0xF0010000 0xFE400000
+    // turn on mmu
+    PER.Set REG:0x12 %Long 0x9
+    DATA.COPY y.range(qurt_tcm_dump) a:&TCM_BASE
+    mmu.create &Qube_va_island--(&Qube_va_island+0x80000) &TCM_BASE
+    ;dialog.message "Loaded Page TABLES00"
+    // write task.pgt out
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    wp.task.pgt
+    ;dialog.message "Loaded Page TABLES11"
+    // remove forced mmu
+    mmu.delete &Qube_va_island--(&Qube_va_island+0x80000)
+    mmu.on
+)
+else if ("&Target_Name"=="8996")
+(
+    // initialize the variables first0x00c00078
+    &Qube_pa_userpd1=0x07600000
+    &matchAddr=0x07600000
+    data.find A:0x07500000--0x077fffff %LONG %LE 0x7800c000
+    if found()
+    (    
+        &matchAddr=(address.offset(track.address())-4)
+        print "USER PD start address found 0x" &matchAddr
+    )
+
+    ;&Qube_va_guestos=address.offset(start);
+    &Qube_pa_guestos=&dspaddr
+    &Qube_va_userpd1=0xb0000000
+    &Qube_pa_userpd1=0x8d400000
+    print "DSP UserPD1 address vritual=0xf0000000  physical=0x" &Qube_pa_guestos
+
+	
+	
+	mmu.create 0xf0000000--(0xf0000000+0x1900000) &Qube_pa_guestos--(&Qube_pa_guestos+0x1900000)
+
+    mmu.format Blast QURTK_pagetables 0xf0000000--(0xf0000000+0xffffff) &Qube_pa_guestos
+    ; mmu.create &Qube_va_userpd1--(&Qube_va_userpd1+0x500000) &Qube_pa_userpd1--(&Qube_pa_userpd1+0x500000)
+
+    mmu.on
+    mmu.autoscan on
+    mmu.tablewalk on
+
+    ; LOAD RTOS AWARENESS MODULE
+    TASK.CONFIG &check_path\qurt_model.t32
+    MENU.ReProgram &check_path\qurt_model.men
+    // write task.pgt out
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    wp.task.pgt
+)
+else
+(
+    // initialize the variables first0x00c00078
+    &Qube_pa_userpd1=0x07600000
+    &matchAddr=0x07600000
+    data.find A:0x07500000--0x077fffff %LONG %LE 0x7800c000
+    if found()
+    (    
+        &matchAddr=(address.offset(track.address())-4)
+        print "USER PD start address found 0x" &matchAddr
+    )
+
+    &Qube_va_guestos=address.offset(start);
+    &Qube_pa_guestos=&dspaddr
+    print "DSP guest OS address vritual=0x" &Qube_va_guestos " physical=0x" &Qube_pa_guestos
+    &Qube_va_userpd1=0x2da00000
+    &Qube_pa_userpd1=&matchAddr
+    print "DSP UserPD1 address vritual=0x" &Qube_va_userpd1 " physical=0x" &Qube_pa_userpd1
+
+    mmu.create &Qube_va_guestos--(&Qube_va_guestos+0x1300000) &Qube_pa_guestos--(&Qube_pa_guestos+0x1300000)
+    mmu.format Blast QURTK_pagetables &Qube_va_guestos--(&Qube_va_guestos+0xffffff) &Qube_pa_guestos
+    if ("&ELF"!="M8x10AAAAAAAAQ1234")
+    (
+        mmu.create &Qube_va_userpd1--(&Qube_va_userpd1+0x500000) &Qube_pa_userpd1--(&Qube_pa_userpd1+0x500000)
+    )
+    mmu.on
+    mmu.autoscan on
+    mmu.tablewalk on
+
+    ; LOAD RTOS AWARENESS MODULE
+    TASK.CONFIG &CurrentDirectory\qurt_model.t32
+    MENU.ReProgram &CurrentDirectory\qurt_model.men
+    // write task.pgt out
+    printer.file &OutputPath_temp\DSP_pgt.txt
+    printer.filetype ASCII 
+    printer.size 0xfa, 0xfa
+    wp.task.pgt
+)

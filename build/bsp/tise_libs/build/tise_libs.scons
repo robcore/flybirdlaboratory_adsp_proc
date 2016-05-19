@@ -1,0 +1,166 @@
+#===============================================================================
+#
+# TISE Image Builder.
+#
+# GENERAL DESCRIPTION
+#    This SCons image will use the Microscft Visual C++ (MSVC) compiler and 
+#    compile a subset of the CoreBSP drivers for use on the Windows platform.
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/tise_libs/build/tise_libs.scons#4 $
+#  $DateTime: 2014/11/06 12:05:11 $
+#  $Change: 6905367 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09-18-14 aj      Updated for IPC router compilation. Included path for stdint.h. 
+# 05-16-14 sm      Initial revision.
+#===============================================================================
+
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should
+# never be two images with the same unique name
+aliases = ['tise_libs']
+
+#------------------------------------------------------------------------------
+# Init environment variables
+
+build_tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+#            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+#            '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py'
+              ]
+
+# Define Flag to Identify TISE Build.
+env.AddUsesFlags('USES_TISE')
+
+
+# This USES flag switches between QDSP6 (Hexagon Tools) and MSVC (Windows).  Adding
+# in this flag compiles with MSVC, and commenting it out uses Hexagon Tools.
+env.AddUsesFlags('USES_MSVC')
+
+if 'USES_MSVC' in env:
+   tise_proc = 'msvc'
+else:
+   tise_proc = 'qdsp6'
+
+env.InitImageVars(
+   alias_list=aliases,
+   proc=tise_proc,
+   config='adsp',
+   build_tags = ['CORE_TISE_SW'],
+   tools = build_tools
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+# Configure the correct compiler.  The 'msvc.py' builder was provided by Ed
+# Johnson, and is supplied in the .\[Processor Root]\build directory.
+if 'USES_MSVC' in env:
+   env.LoadToolScript('msvc', toolpath = ["${BUILD_ROOT}/build"]) #MSVC Tools
+   env.Append(CPPPATH = [
+      "${BUILD_ROOT}/hap/tise_orphans/aDSPSim/types",
+   ])
+else:
+   env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build']) # Hexagon Tools
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# Specify the SCons files that you would like to build.
+tise_libs = [
+   'mproc/smd',
+   'mproc/smem',
+   'mproc/ipc_router',
+ # 'services/osal',
+   'services/utils',
+ # 'services/diag', 
+   'memory/dsm'
+   ]
+
+au_name_items = env.LoadAreaSoftwareUnits('core', tise_libs)
+image_libs.extend(au_name_items['LIBS'])
+image_objs.extend(au_name_items['OBJS'])
+
+image_units = [image_objs, image_libs]
+
+
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+
+   image_units += local_itmes
+
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+   # Generate a list of all libraries built by this SCons image.  This a generic builder, and
+   # it is used to track what has been built by this image.
+   if [image_objs,image_libs] != 0:
+      image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.lf", [image_objs, image_libs],
+         add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+   else:
+      image_elf=[]
+         
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed
+   #
+   image_units += [
+      image_elf,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

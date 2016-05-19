@@ -1,0 +1,222 @@
+#===============================================================================
+#
+# ADSP Audio User PD SCons Image
+#
+# GENERAL DESCRIPTION
+#    This is the Image SCons to generate the User PD *.ELF, specific to Audio.
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/avs_adsp_user/build/avs_adsp_user.scons#5 $
+#  $DateTime: 2014/11/12 19:31:01 $
+#  $Change: 6945721 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/02/14   sl      Initial revision.
+#===============================================================================
+import sys
+import re
+import os
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th element in array) is always unique name, there should 
+# never be two images with the same unique name
+aliases = ['avs_adsp_user', 'adsp_mpd_images', 'adsp_mpd_core_images',
+           'msm8994_MPD', 'msm8992_MPD', 'msm8996_MPD'
+          ]
+
+build_tools = ['buildspec_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py']
+
+# Init environment variables
+env.InitImageVars(
+   alias_list=aliases,
+   proc='qdsp6',
+   config='adsp',
+   plat='qurt',
+   target='AUDIO_IMG_${BUILD_ID}',
+   build_tags = ['CORE_AVS_ADSP_USER', 'CORE_QDSP6_AUDIO_SW', 'AVS_ADSP_USER', 'USER_PD', 'CORE_USER_PD', 'QMIMSGS_ADSP', 'APR_ADSP_USER'], 
+# CORE_AVS_ADSP_USER is replacement for CORE_QDSP6_AUDIO_SW; 
+# AVS_ADSP_USER is a tag for AVS code and will go to a separate scons after compilation is separated from linking. USER_PD replaces CORE_USER_PD  
+   tools = build_tools
+   )
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+# temporarily to disable audio pd by default and enable it in the build command with -f AUDIO_IN_USERPD
+# e.g. python build.py -c msm8994 -f AUDIO_IN_USERPD -o all 2>&1 | tee LOG_build.txt
+
+if 'BUILD_BAREBONE' in env or 'AUDIO_IN_USERPD' not in env:
+   print "AUDIO_IN_USERPD or BUILD_BAREBONE in audio_image.scons env, bypass audio compilation"
+   Return()
+
+env.Replace(USES_AUDIO_IMG = 'yes')
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DEVCFG_CORE_QDSP6_AUDIO_SW')
+
+#if image wants to own "main": # image calls core_main to init cbsp
+env.Append(CPPDEFINES=["COREMAIN_EXCLUDE_MAIN"])
+env.Append(CPPDEFINES=["MULTI_PD_BUILD"])
+
+if ('USES_FEATURE_DYNAMIC_LOADING_GLOBAL' in env) :
+   env.Replace(USES_FEATURE_DYNAMIC_LOADING = 'yes')
+   env.LoadToolScript('sharedlib_symbols', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+   env.LoadToolScript('dlinker_symbols', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+
+#---------------------------------------------------------------------------
+# Set the Kernel Target Configuration
+#---------------------------------------------------------------------------
+if env['MSM_ID'] in ['8994', '8992']:
+   env.Replace(QURT_BUILD_CONFIG="ADSPv56MP")
+elif env['MSM_ID'] in ['8996']:
+   env.Replace(QURT_BUILD_CONFIG="ADSPv60MP")
+else:
+   env.Replace(QURT_BUILD_CONFIG="ADSPv5MP")
+
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+#Add ADSP Image specific linker inputs here
+env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build'])
+# Change the image entry point.
+env.Replace(HEXAGON_IMAGE_ENTRY='0xb0000000')
+# These lines need to be cleaned up still.  We should be reading the linkflags, and only modifying what we need.
+if os.environ.get('COMPILER') == ('gcc'):
+   env.Replace(LINKFLAGS = "-m${Q6VERSION} --wrap malloc --wrap calloc --wrap free --wrap realloc --wrap memalign -g -G0 -nostdlib ${HEXAGONLD_MAP_CMD} ${TARGET.posix}.map --section-start .start=${HEXAGON_IMAGE_ENTRY} --gc-sections ${LFLAGS}")
+else: # LLVM linker flags: only difference is removed -T${BUILD_ROOT}/Sensors/build/${CHIPSET}/sensors.linker
+   env.Replace(LINKFLAGS = "-m${Q6VERSION} --wrap malloc --wrap calloc --wrap free --wrap realloc --wrap memalign -g -G0 -nostdlib ${HEXAGONLD_MAP_CMD} ${TARGET.posix}.map --section-start .start=${HEXAGON_IMAGE_ENTRY} ${LFLAGS}")
+
+
+
+env.Replace(QDSP6OBJS3  = [
+         '${QDSP6_LIBDIR}/libqurt.a',
+         '${QDSP6_LIBDIR}/libqurtcfs.a',
+         '${QDSP6_LIBDIR}/libqurtkernel.a',
+         '${QDSP6_LIBDIR}/libqube_compat.a',
+         '${QDSP6_LIBDIR}/libtimer.a',
+         '${QDSP6_LIBDIR}/libposix.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libc.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libqcc.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libstdc++.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libdl.a',
+         ])
+
+env.Replace(LINKOBJGRP = "${QDSP6OBJS1} " \
+   "--start-group $_LIBFLAGS_POSIX ${QDSP6OBJS2} $SOURCES.posix $_LISTFILES ${QDSP6OBJS3} --end-group " \
+   "${QDSP6OBJS4} "
+)
+
+env.Replace(DYNLINKFLAGS = "")
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+audio_img_libs = []
+audio_img_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+# Load CORE
+au_items = env.LoadAreaSoftwareUnits('core')
+audio_img_libs.extend(au_items['LIBS'])
+audio_img_objs.extend(au_items['OBJS'])
+
+# Load AVS
+au_items = env.LoadAreaSoftwareUnits('avs')
+audio_img_libs.extend(au_items['LIBS'])
+#audio_img_objs.extend(au_items['OBJS'])
+
+
+# Load AVS
+au_items = env.LoadAreaSoftwareUnits('avs',filter_list=['pd'])
+#audio_img_libs.extend(au_items['LIBS'])
+audio_img_objs.extend(au_items['OBJS'])
+
+
+# load QMI
+if env.PathExists("${BUILD_ROOT}/qmimsgs"):
+   au_items = env.LoadAreaSoftwareUnits('qmimsgs')
+   audio_img_libs.extend(au_items['LIBS'])
+   audio_img_objs.extend(au_items['OBJS'])
+
+if env.PathExists("${BUILD_ROOT}/apr"):
+   au_items = env.LoadAreaSoftwareUnits('apr')
+   audio_img_libs.extend(au_items['LIBS'])
+   audio_img_objs.extend(au_items['OBJS'])
+
+
+# Debug code for finding environment variables
+#for key in env.Dictionary():
+#   try:
+#      if type(env[key]) == str and env[key] in ["20201170", "AAABQMAAM", "AABBQMAAM", "7X30A", "M7X30", "7X30", "7x30", "7630"]:
+#         print "env['" + str(key) + "'] = " + str(env[key])
+#   except:
+#      print "Exception on key", key
+#      import pdb; pdb.set_trace()
+
+# Due to a requirement that the .MAP file must be formatted with relative paths, to be compatible with the GenerateIslandList formatting.  We are saving a list of library files and object files into the SCons image root, to be used at link time.
+image_units = []
+image_lf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.lf", [audio_img_objs, audio_img_libs],
+      add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+image_units += [image_lf]
+listfile = env.RealPath('${BUILD_ROOT}/build/bsp/avs_adsp_user/build/AAAAAAAA/AUDIO_IMG_AAAAAAAAQ.lf')
+#------------------------------------------------------------------------------
+# Putting the image together
+#------------------------------------------------------------------------------
+
+# These are dummy placeholders for now.  The complete implementation will only use listing files, and this will be removed.
+image_libs_dummy = []
+image_objs_dummy = []
+
+# Link the ELF.
+image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs_dummy, LIBS=image_libs_dummy, LISTFILES=listfile)
+
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   # Install the *.ELF in .\build\ms for the next step.
+   env.Replace(BUILD_ELF_EXTN = '_AUDIO')
+   install_target_elf = env.InstallAs(
+            "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}${BUILD_ELF_EXTN}.elf", image_elf)
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,install_target_elf
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

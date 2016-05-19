@@ -1,0 +1,82 @@
+#=============================================================================
+# CLOCK DRIVER HW(CHIPSET) LIBRARY
+#
+# Target:    Shared library.
+# Processor: All
+#
+#=============================================================================
+# $Header: //components/rel/core.adsp/2.6.1/systemdrivers/clock/hw/msm8996/build/clock_hw.scons#1 $
+#=============================================================================
+#  Copyright 2012 - 2013 QUALCOMM Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+
+Import('env')
+env = env.Clone()
+
+
+#------------------------------------------------------------------------------
+# Add API folders
+#------------------------------------------------------------------------------
+
+CLOCK_BUILD_ROOT = os.getcwd();
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-----------------------------------------------------------------------------
+# Define any features or compiler flags
+#-----------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'POWER',
+   'KERNEL',
+]
+ 	 
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+CLOCK_HW_SOURCES = [
+   '${BUILDPATH}/src/ClockLPASS.c',
+   '${BUILDPATH}/src/ClockLPASSDCVS.c',
+   '${BUILDPATH}/src/ClockLPASSXO.c',
+   '${BUILDPATH}/src/ClockLPASSVDD.c'
+]
+
+#-------------------------------------------------------------------------------
+# Define objects
+#-------------------------------------------------------------------------------
+
+ClockHW_lib       = env.Library('${BUILDPATH}/ClockHW',   CLOCK_HW_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(
+  ['MODEM_IMAGE',    'CBSP_MODEM_IMAGE',
+   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+   ClockHW_lib)
+

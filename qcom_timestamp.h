@@ -1,0 +1,1 @@
+const char qcom_timestampstring[] = "QCOM time:Q6_BUILD_TS_Thu_Jun_11_13:23:41_PST_2015_ADSP.BF.2.6-00508-M8994";

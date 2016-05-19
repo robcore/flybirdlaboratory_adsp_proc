@@ -1,0 +1,37 @@
+//===========================================================================
+//
+// FILE:         ABT_lpass_8084.xml
+//
+// DESCRIPTION:  This file contains the DAL XML properties for the AHB
+//               Timeout Driver.
+//
+//===========================================================================
+//
+//                             Edit History
+//
+// $Header: //components/rel/core.adsp/2.6.1/buses/icb/config/ABT_lpass_8084.xml#1 $
+// $DateTime: 2014/10/16 12:45:40 $
+// $Author: pwbldsvc $
+// $Change: 6781644 $ 
+//
+// when         who   what, where, why
+// ----------   ---   -------------------------------------------------------
+// 2013/05/30   pm    Created
+// 2012/05/31   av    Created
+//
+//===========================================================================
+//             Copyright (c) 2013 QUALCOMM Incorporated.
+//                    All Rights Reserved.
+//                  QUALCOMM Proprietary/GTDR
+//===========================================================================
+
+<driver name="NULL">
+   <global_def>
+        
+   </global_def>
+   <device id="/dev/ABTimeout">
+     <props name="ABT_Propdata" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ABT_propdata
+     </props> 
+   </device>   
+</driver>

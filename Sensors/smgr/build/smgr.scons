@@ -1,0 +1,167 @@
+#===============================================================================
+#
+# SMGR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/ssc.adsp/2.6.1/smgr/build/smgr.scons#2 $
+#  $DateTime: 2014/12/12 18:16:56 $
+#  $Author: pwbldsvc $
+#  $Change: 7132317 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/10/2014  MW     Fix HD22 section
+# 07/25/2014  ps     Support for 8996 images
+# 05/29/2014  pn     Restructured to fix libraries with overlapping objects
+# 05/09/2014  sc     Added folder for legacy support
+# 04/29/2014  pn     Added support for island mode
+# 04/23/2014  pn     Removed illegal inclusions
+# 04/19/2014  sc     Removed target-specific folders
+# 04/18/2004  DC     Added cleanpack rules for HD11 package
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 08/09/2013  pn     Added KERNEL public API dependency
+# 06/25/2013  ps     update require method for Public APIs
+# 01/29/2013  hw     Add profiling support
+# 12/03/2012  pn     List of source files is programmatically built.
+# 12/02/2012  ag     Add multi PD support
+# 11/08/2012  sc     Merged from DSPS 1.1; removed qmi ping client from build
+# 08/22/2012  sc     Added smgr_qmi_ping_clnt.c into the build (from Amolika)
+# 08/10/2012  sc     Added sns_smgr_irq.c into the build
+# 07/29/2012  ag     Adding QMI support
+# 07/18/2011  br     Added sns_smgr_sensor_config.c
+# 07/01/2011  agk    Added BUSES to dependency.
+# 05/04/2011  jb     Add init file to be located in DDR memory
+# 04/17/2011  jh     Move target independent source files to common folder
+# 03/17/2011  jh     Compile sns_smgr_test.c only in test builds
+# 12/22/2010  pg     Update for accessing UCOS header files from DALSYS. 
+#
+#===============================================================================
+Import('env')
+import os
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BUSES',
+   'KERNEL',
+   'MPROC',
+   'SERVICES',
+   'POWER',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_PMIC',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SENSORS',
+   'SNS_SMR',
+   'SNS_QUEUE',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_DDF',
+   'SNS_PM',
+   'SNS_SMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS',
+   'SNS_INT_SVC',
+   'SNS_MATHTOOLS',
+   'SNS_PROFILING',
+   'SNS_PLAYBACK',
+]
+
+env.RequireProtectedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/smgr/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/dd/qcom/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+BIG_IMG_SRC  = ['${BUILDPATH}/' + basename(fname) 
+                for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+if 'USES_ISLAND' in env:
+  U_IMG_SRC  = ['${BUILDPATH}/' + basename(fname) 
+                for fname in glob(join(env.subst(SRCPATH), '*uimg.c'))]
+  [BIG_IMG_SRC.remove(f) for f in U_IMG_SRC if f in BIG_IMG_SRC]
+  #print "\nSMGR U_IMG:"
+  #print '\n'.join(["%s" % i for i in U_IMG_SRC])  #for debugging
+
+#print "\nSMGR BIG_IMG:"
+#print '\n'.join(["%s" % i for i in BIG_IMG_SRC])  #for debugging
+#print "\n"
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+  # Sources that should not be shared
+  SMGR_CLEAN_SOURCES  = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/smgr/src')
+  SMGR_CLEAN_SOURCES += env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/smgr/src/legacy')
+  SMGR_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/smgr/inc')
+
+  # Add binary library
+  BIG_IMG_LIB = env.AddBinaryLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+    '${BUILDPATH}/smgr', BIG_IMG_SRC)
+
+  if 'USES_ISLAND' in env:
+    U_IMG_LIB = env.AddBinaryLibrary(
+      ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+      '${BUILDPATH}/smgr_uimg', U_IMG_SRC)
+
+  # Clean sources
+  env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], SMGR_CLEAN_SOURCES)
+else:
+  BIG_IMG_LIB = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+    '${BUILDPATH}/smgr', BIG_IMG_SRC)
+
+  if 'USES_ISLAND' in env:
+    U_IMG_LIB = env.AddLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     '${BUILDPATH}/smgr_uimg', U_IMG_SRC)
+    
+
+# Clause common to regular build and HD22
+if 'USES_ISLAND' in env:
+  env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], U_IMG_LIB)

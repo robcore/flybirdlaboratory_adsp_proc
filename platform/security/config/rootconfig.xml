@@ -1,0 +1,32 @@
+#define DAL_CONFIG_IMAGE_ADSP_PLATFORM
+<driver name="NULL">
+
+  <global_def>
+    <var_seq name="root_0_seq"  type=DALPROP_DATA_TYPE_BYTE_SEQ>
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, end
+    </var_seq>
+  </global_def>
+
+  <device id="/security">
+    <props name="root_0" type=DALPROP_ATTR_TYPE_BYTE_SEQ_PTR>
+      root_0_seq
+    </props>
+    <props name="root_0_testsig_only" type=DALPROP_ATTR_TYPE_UINT32>
+      00
+    </props>
+    <props name="no_default_root" type=DALPROP_ATTR_TYPE_UINT32>
+      00
+    </props>
+    <props name="tcg_codesig" type=DALPROP_ATTR_TYPE_UINT32>
+      123456
+    </props>
+    <props name="tcg_testsig" type=DALPROP_ATTR_TYPE_UINT32>
+      123456
+    </props>
+  </device>
+
+</driver>
+

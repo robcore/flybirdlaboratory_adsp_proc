@@ -1,0 +1,51 @@
+#===============================================================================
+#
+# Services Paths
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010-2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: 2010/09/14 17:32:48 $
+#  $Author: irenes $
+#  $Change: 1439454 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+# Public APIs these are accessible by anyone internal or external to CoreBSP
+env.PublishPublicApi('SERVICES', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/services/diag/diag_mask_tbl/src",
+   "${INC_ROOT}/core/api/kernel/qurt",
+	"${INC_ROOT}/core/api/power",
+])
+
+# Restricted APIs these are accessible by anyone within CoreBSP
+env.PublishRestrictedApi('SERVICES', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/services/diag/DCM/rtos/src",
+   "${INC_ROOT}/core/services/diag/LSM/common/src",
+   "${INC_ROOT}/core/services/diag/LSM/qurt/src",
+   "${INC_ROOT}/core/services/diag/LSM/f3_trace/src",
+   "${INC_ROOT}/core/services/diag/platform/adsp/src",
+   "${INC_ROOT}/core/services/diag/DCM/common/src",
+   "${INC_ROOT}/core/services/utils/src",
+   "${INC_ROOT}/core/services/osal/inc",
+   "${INC_ROOT}/core/services/osal/qurt/inc",
+   "${INC_ROOT}/core/services/prof/inc",
+   "${INC_ROOT}/core/services/diag/f3_trace/src",
+  ])

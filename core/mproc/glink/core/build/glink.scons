@@ -1,0 +1,103 @@
+#===============================================================================
+#
+# SMD Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/mproc/glink/core/build/glink.scons#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/02/14  bm        Initial version for GLink core driver
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/mproc/glink/core/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DEBUGTOOLS',
+   'HAL',
+   'DAL',
+   'HWENGINES',
+   'MPROC',
+   'MEMORY',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['MPROC_GLINK'])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+GLINK_CORE = [
+   '${BUILDPATH}/glink_api.c',
+   '${BUILDPATH}/glink_core_if.c',
+]
+
+GLINK_OS_DAL = [
+   '${BUILDPATH}/glink_dal.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+# Add Image-specific Libraries, whose sources should be packed out.
+env.AddBinaryLibrary(['WCN_IMAGE', 'CORE_QDSP6_SW', 'CBSP_APPS_IMAGE', 'APPS_IMAGE'],
+                     '${BUILDPATH}/glink',
+                     [GLINK_CORE, GLINK_OS_DAL])
+
+                     
+#-------------------------------------------------------------------------------
+# CleanPack (Remove) all remaining files for peripheral processors
+#-------------------------------------------------------------------------------
+PACK_OUT = env.FindFiles(['*.h', '*.c', '*.s'], SRCPATH)
+# Don't include RPM in this list, because it already does we want automatically.
+env.CleanPack(['CORE_QDSP6_SW', 'WCN_IMAGE'], PACK_OUT)
+
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_GLINK_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',           # required
+  'init_name'                  : 'glink',                    # required
+  'init_function'              : 'glink_init',               # required
+  'dependencies'               : ['dalsys']
+}
+
+if 'USES_RCINIT' in env:
+  env.AddRCInitFunc( ['CORE_QDSP6_SW'], RCINIT_INIT_GLINK_INIT )
+

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  VDD DIG Sleep Low Power Resource/Mode definitions
+
+  Copyright (c) 2012-2013 QUALCOMM Technologies Incorporated.
+  All Rights Reserved.
+  Qualcomm Confidential and Proprietary
+
+Format of Enter/Exit/Backoff latency fields:
+"<Fixed>,<Scaled>"
+Fixed - Unscaled value that is always added to each frequency table entry
+Scaled - Value that will be scaled at 1:1 ratio according to frequency table entries
+         and the initial base profile frequency given via ProfileFreq
+
+Bitwise attribute values (see sleep_mode_attribute enum for full description):
+  0x01 - No reference count
+  0x02 - No function lock
+  0x04 - No latency optimization
+  0x08 - No automatic latency tracking
+-->
+
+<LPRDefinition>
+  <LPR Name="vdd_dig" CoreMask="0xFFFFFFFF" InitFn="vdd_dig_init" ProfileFreq="245760">
+    <Mode Name="min"
+          Dependency="cxo.shutdown + rpm.sync"
+          Order="BEFORE rpm.sync"
+          PowerSavings="0, 65"
+          EnterLat="5826"
+          ExitLat="5688"
+          Backoff="888"
+          EnterFn="vdd_dig_min_enter"
+          ExitFn="vdd_dig_min_exit"
+          >
+    </Mode>
+  </LPR>
+</LPRDefinition>

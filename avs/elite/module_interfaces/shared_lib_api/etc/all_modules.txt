@@ -1,0 +1,48 @@
+#amdb_mgr Usage: ./amdb_mgr <command> <parameters>
+# write only <command> <parameters> in this file
+#add_appi            id  preload  filename_str  getsize_str  ctor_str
+#add_capi            id  preload  filename_str  getsize_str  ctor_str
+#add_capi_v2         type  id1  id2  preload  filename_str  get_static_properties_str  init_str
+##
+#### *** for adding non-CAPI, non-APPI, non-CAPIV2 .so files. these files don't need to be loaded to AMDB.
+#add_other 	    filename_str 
+####
+##
+#  Type       | id2           | id1
+#  -----------+---------------+---------------
+#  Generic    | Module id Set | Set to zero
+#  Encoder    | Output format | Set to zero
+#  Decoder    | Input format  | Set to zero
+#  Converter  | Input format  | Output format
+#  Packetizer | Input format  | Set to zero
+#
+#define AMDB_MODULE_TYPE_GENERIC 0
+#define AMDB_MODULE_TYPE_DECODER 1
+#define AMDB_MODULE_TYPE_ENCODER 2
+#define AMDB_MODULE_TYPE_CONVERTER 3
+#define AMDB_MODULE_TYPE_PACKETIZER 4
+#
+#example 1: 
+# add_capi_v2 1 0x10BE9 0 1 HpMp3DecoderModule.so.1.0 hp_mp3_dec_capi_v2_get_static_properties hp_mp3_dec_capi_v2_init
+# add_other utils.so.1.0
+#example 2: 
+# SHARED_LIB_DIR='X:\temp'
+# add_other $(SHARED_LIB_DIR)/abcd.so
+#example 3:
+# add_capi_v2 1 0x10BE9 0 1 X:\temp\HpMp3DecoderModule.so.1.0 hp_mp3_dec_capi_v2_get_static_properties hp_mp3_dec_capi_v2_init
+
+#specify the dir where you have store the below .so files.  you can redefine SHARED_LIB_DIR later on. this definition applies until a new definition is added. Also argument to load_so.py overrides this altogether. 
+SHARED_LIB_DIR=X:\AVS.ADSP.2.6.dynloading6\adsp_proc\avs\build\dynmods\avs_shared_libs\qdsp6\AAAAAAAA
+#MP3
+add_capi_v2 1 0x10BE9 0 1 $(SHARED_LIB_DIR)/ComboMp3DecoderModule.so.1.0 combo_mp3_dec_capi_v2_get_static_properties combo_mp3_dec_capi_v2_init
+add_other $(SHARED_LIB_DIR)/Mp3DecoderModule.so.1.0
+add_other $(SHARED_LIB_DIR)/HpMp3DecoderModule.so.1.0
+
+#specify the dir where you have store the below .so files. you can redefine SHARED_LIB_DIR later on. this definition applies until a new definition is added. Also argument to load_so.py overrides this altogether.
+SHARED_LIB_DIR=X:\AVS.ADSP.2.6.dynloading6\adsp_proc\avs\build\dynmods\avs_shared_libs\qdsp6\AAAAAAAA
+#ETSI AAC ENC CAPI
+add_capi_v2 2 0x10DA6 0 1 $(SHARED_LIB_DIR)/EtsiEaacPlusEncoderModule.so.1.0 etsi_eaacplus_enc_capi_v2_get_static_properties etsi_eaacplus_enc_capi_v2_init
+add_other $(SHARED_LIB_DIR)/EtsiEaacCommonModule.so.1.0
+
+
+

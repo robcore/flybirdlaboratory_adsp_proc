@@ -1,0 +1,45 @@
+#===============================================================================
+#
+# Storage INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/mpss/rel/1.0/modem_proc/core/storage/build/paths.sconscript#2 $
+#  $DateTime: 2011/09/08 09:34:58 $
+#  $Author: coresvc $
+#  $Change: 1920716 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2012-03-12   rh      Baseline file for 8974
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('STORAGE', [
+   "${INC_ROOT}/core/api/storage",
+])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('STORAGE', [
+   "${INC_ROOT}/core/storage/rfsa_client/inc",
+   "${INC_ROOT}/core/storage/rfs/inc",   
+])

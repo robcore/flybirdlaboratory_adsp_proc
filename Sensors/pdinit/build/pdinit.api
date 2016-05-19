@@ -1,0 +1,28 @@
+#===============================================================================
+#
+# PDINIT INC PATHs
+#
+# GENERAL DESCRIPTION
+#    PDINIT INC PATH
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/31/14   davlee  Initial revision.
+#
+#===============================================================================
+Import('env')
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# These are accessible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('INIT', [
+   "${INC_ROOT}/Sensors/api",
+])

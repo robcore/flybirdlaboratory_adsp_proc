@@ -1,0 +1,246 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/sensor_img/build/sensor_img.scons#32 $
+#  $DateTime: 2014/10/30 11:46:53 $
+#  $Change: 6862399 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import re
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['sensor_img', 'adsp_mpd_images', 'adsp_mpd_core_images',
+           'msm8974_MPD', 'msm8x26_MPD', 'apq8084_MPD', 'msm8962_MPD', 'msm8992_MPD', 'msm8994_MPD'
+          ]
+
+build_tools = ['buildspec_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py']
+
+# For the 8992 and 8994 chipset, we want to include island builder support.
+if env.get('CHIPSET') == "msm8992" or env.get('CHIPSET') == "msm8994":
+   build_tools += [
+            '${BUILD_ROOT}/core/bsp/build/scripts/island_builder.py',
+            '${BUILD_ROOT}/core/kernel/qurt/scripts/island_analysis.py']
+
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='adsp',                # config type, proc_name
+   plat='qurt',
+   target='SENSOR_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['CORE_QDSP6_SENSOR_SW','QDSS_SENSOR_EN_IMG','QMIMSGS_ADSP', 'USER_PD'],
+   tools = build_tools
+   )
+
+
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+
+# Add defines
+env.Append(CPPDEFINES = [
+"LPASS_SENSOR_IMG"
+])
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+if 'USES_DISABLE_SENSORS' in env or 'BUILD_BAREBONE' in env:
+   print "USES_DISABLE_SENSORS or BUILD_BAREBONE in sensor_image.scons env, bypass sensor compilation"
+   Return()
+
+env.Replace(USES_SENSOR_IMG = 'yes')
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DEVCFG_CORE_QDSP6_SENSOR_SW')
+
+#if image wants to own "main": # image calls core_main to init cbsp
+env.Append(CPPDEFINES=["COREMAIN_EXCLUDE_MAIN"])
+env.Append(CPPDEFINES=["MULTI_PD_BUILD"])
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+#Add ADSP Image specific linker inputs here
+env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build'])
+
+# the below change is to remove elite.linker. needs to be done in hexagon.py
+if os.environ.get('COMPILER') == ('gcc'):
+   env.Replace(LINKFLAGS = "-m${Q6VERSION} --wrap malloc --wrap calloc --wrap free --wrap realloc --wrap memalign -g -T${BUILD_ROOT}/Sensors/build/${CHIPSET}/sensors.linker -G0 -nostdlib ${HEXAGONLD_MAP_CMD} ${TARGET.posix}.map --section-start .start=${HEXAGON_IMAGE_ENTRY} ${LFLAGS}")
+else: # LLVM linker flags: only difference is removed -T${BUILD_ROOT}/Sensors/build/${CHIPSET}/sensors.linker
+   env.Replace(LINKFLAGS = "-m${Q6VERSION} --wrap malloc --wrap calloc --wrap free --wrap realloc --wrap memalign -g -G0 -nostdlib ${HEXAGONLD_MAP_CMD} ${TARGET.posix}.map --section-start .start=${HEXAGON_IMAGE_ENTRY} ${LFLAGS}")
+
+#Add sensor Image specific linker inputs here
+env.Replace(HEXAGON_IMAGE_ENTRY='0x2DA00000')
+
+env.Replace(LINKOBJGRP = "${QDSP6OBJS1} " \
+   "--start-group $_LIBFLAGS_POSIX ${QDSP6OBJS2} $SOURCES.posix $_LISTFILES ${QDSP6OBJS3} --end-group " \
+   "${QDSP6OBJS4} "
+)
+
+
+env.Replace(DYNLINKFLAGS = "")
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+sensor_img_libs = []
+sensor_img_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load Build Test libs/objs build rules. Add for sensor/audio(if scons) in future
+#au_items = env.LoadAreaSoftwareUnits('build_test')
+#sensor_img_libs.extend(au_items['LIBS'])
+#sensor_img_objs.extend(au_items['OBJS'])
+
+# load Core BSP libs/objs build rules.
+au_items = env.LoadAreaSoftwareUnits('core')
+sensor_img_libs.extend(au_items['LIBS'])
+sensor_img_objs.extend(au_items['OBJS'])
+
+#<--- Start AG
+# load QURT Elite libs/objs build rules.
+if env.PathExists("${BUILD_ROOT}/avs"):
+   au_items = env.LoadAreaSoftwareUnits('avs')
+   sensor_img_libs.extend(au_items['LIBS'])
+   sensor_img_objs.extend(au_items['OBJS'])
+
+# load Sensors libs/obj build rules.
+if env.PathExists("${BUILD_ROOT}/Sensors"):
+   au_items = env.LoadAreaSoftwareUnits('Sensors')
+   sensor_img_libs.extend(au_items['LIBS'])
+   sensor_img_objs.extend(au_items['OBJS'])
+
+#---> End AG
+
+# load QMI messages libs/objs build rules.
+if env.PathExists("${BUILD_ROOT}/qmimsgs"):
+   au_items = env.LoadAreaSoftwareUnits('qmimsgs')
+   sensor_img_libs.extend(au_items['LIBS'])
+   sensor_img_objs.extend(au_items['OBJS'])
+
+# load QDSP6 messages libs/objs build rules.
+# need stack protection object file goes to sensors image   
+if env.PathExists("${BUILD_ROOT}/qdsp6"):
+   au_items = env.LoadAreaSoftwareUnits('qdsp6')
+   sensor_img_libs.extend(au_items['LIBS'])
+   sensor_img_objs.extend(au_items['OBJS'])
+
+# Parse through the build directory, and collect all library files and object files that are to be placed into the island.  Write the list to the SCons image root.
+image_units = []
+if 'USES_ISLAND' in env:
+   island_list = env.GenerateIslandList()
+   image_units = [island_list]
+   
+# Debug code for finding environment variables
+#for key in env.Dictionary():
+#   try:
+#      if type(env[key]) == str and env[key] in ["20201170", "AAABQMAAM", "AABBQMAAM", "7X30A", "M7X30", "7X30", "7x30", "7630"]:
+#         print "env['" + str(key) + "'] = " + str(env[key])
+#   except:
+#      print "Exception on key", key
+#      import pdb; pdb.set_trace()
+
+# Due to a requirement that the .MAP file must be formatted with relative paths, to be compatible with the GenerateIslandList formatting.  We are saving a list of library files and object files into the SCons image root, to be used at link time.
+image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [sensor_img_objs, sensor_img_libs],
+      add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+image_units += [
+      image_elf]
+
+#------------------------------------------------------------------------------
+# Load in CBSP common build rules
+#------------------------------------------------------------------------------
+
+env.Replace(QCOREIMG_LIBS = sensor_img_libs)
+env.Replace(QCOREIMG_OBJS = sensor_img_objs)
+# We are adding our generated listing file to the QCOREIMG environment.
+env.Replace(QCOREIMG_LISTFILE = env.RealPath('${BUILD_ROOT}/build/bsp/sensor_img/build/AAAAAAAA/SENSOR_IMG_AAAAAAAAQ.txt'))
+env.Replace(BUILD_ELF_EXTN = '_SENSOR')
+
+# This is only executed if we are compiling for a chipset using the uImage island mode.
+if 'USES_ISLAND' in env:
+      # Provide locations of linker template, island specification, and kernel script.
+      sensor_libs_island_txt=env.RealPath('${BUILD_ROOT}/build/bsp/sensor_img/build/AAAAAAAA/SENSOR_IMG_AAAAAAAAQ_island.txt')
+      island_analysis_filename=env.RealPath('${BUILD_ROOT}/build/bsp/sensor_img/build/AAAAAAAA/island_analysis.txt')
+      hex_island = env.RealPath('${BUILD_ROOT}/Sensors/build/${CHIPSET}/hex.ispec')
+      linker_template = "${BUILD_ROOT}/Sensors/build/${CHIPSET}/sensors.lcs.template"
+      generated_linker = "${SHORT_BUILDPATH}/sensors"
+      generated_linker_path = "${BUILD_ROOT}/build/bsp/sensor_img/build/AAAAAAAA/sensors.lcs"
+      island_analysis_file = env.IslandAnalysis(island_analysis_filename,[sensor_libs_island_txt,hex_island],['${BUILD_ROOT}','${QDSP6_RELEASE_LIB_DIR}'],[])
+      
+      # Generate the LCS from the template, and add it to the environment.
+      island_lcs = env.GenerateIslandLCSFile(generated_linker, linker_template, [sensor_libs_island_txt,hex_island])
+      
+      # This is removing the TCM inclusions, to reduce the TCM usage.
+      #island_lcs = env.GenerateIslandLCSFile(generated_linker, linker_template)
+      env.Depends(island_lcs, island_analysis_file)
+      image_units += [island_lcs]
+      
+      # Store the LCS file in the image environment, if we need to refer to it later.
+      rootenv = env.get('IMAGE_ENV')
+      rootenv['lcs_file'] = island_lcs
+      
+      # Modify the link line to pick up the generated linker script.
+      # Get the LINKFLAGS. 
+      linkflags = env.get('LINKFLAGS')
+      # Search to see if a template file is being used.
+      if re.match(r'.* -{1,2}T.*',linkflags):
+         # Modify the linkflags to use the new template file.
+         modified_linkflags = re.sub(r'-{1,2}T ?([^ ]*)','-T ' + generated_linker_path, linkflags)
+         env.Replace(LINKFLAGS = modified_linkflags)
+      else:
+         # Append the linker script to the linkflags.
+         env.Append(LINKFLAGS = "-T " + generated_linker_path)
+         
+      # Temporary requirement to replace '.start' with '.qurtstart'
+      # Get the LINKFLAGS.
+      linkflags = env.get('LINKFLAGS')
+      # Search to see if '.start' is being used.
+      if re.match(r'.* .start*',linkflags):
+         # Modify the linkflags to use '.qurtstart'.
+         modified_linkflags = re.sub(r'\.start','.qurtstart', linkflags)
+         env.Replace(LINKFLAGS = modified_linkflags)
+      else:
+         env.PrintError("Cannot find .start in LINKFLAGS.  This is expected.")
+         env.PrintError("In Island linking, we need to replace .start with .qurtstart")
+         exit(1)
+
+# Call the toolset that invokes the ELF linking.
+env.Tool('platform_blast_adsp', toolpath = ['${BUILD_ROOT}/build/ms'])
+
+# Bind the changes to the target.
+if 'USES_ISLAND' in env:
+   env.BindAliasesToTargets(image_units)

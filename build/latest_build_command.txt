@@ -1,0 +1,1 @@
+build/build.py -o clean -c msm8994

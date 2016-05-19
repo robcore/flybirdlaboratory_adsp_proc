@@ -1,0 +1,103 @@
+#===============================================================================
+#
+# QUP Manager Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies Incorporated.  All Rights Reserved.
+#
+#-------------------------------------------------------------------------------
+#
+# EDIT HISTORY FOR FILE
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 6/17/2014  davlee  Initial development
+#
+#===============================================================================
+
+Import('env')
+# flag for enabling qup manager test task
+qup_manager_debug_task = 0
+# flag for enabling qup manager 
+qup_manager_enable = 1
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+env.VariantDir('${BUILDPATH}', '../src', duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Dependant APIs
+#-------------------------------------------------------------------------------
+# Core API 
+CBSP_API = [
+   'BUSES',
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi('QUPM', area='qmimsgs')
+env.RequirePublicApi(CBSP_API, area='core')
+env.RequireProtectedApi(CBSP_API)
+env.RequirePrivateApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+QUP_MANAGER_USER =  [
+    '${BUILDPATH}/qup_manager.c',
+    ]
+if qup_manager_debug_task: 
+  QUP_MANAGER_USER.append('${BUILDPATH}/qup_manager_test.c')
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+QUP_MANAGER_USER_IMGS = [
+  'CORE_QDSP6_SENSOR_SW',       # Domain (Sensor)
+]
+env.AddLibrary(
+   QUP_MANAGER_USER_IMGS,
+   '${BUILDPATH}/qup_manager_user', QUP_MANAGER_USER)
+
+# Register initializations with rcinit
+if qup_manager_enable:
+  if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(  
+    QUP_MANAGER_USER_IMGS,            
+    {
+     'sequence_group'             : 'RCINIT_GROUP_7',                   
+     'init_name'                  : 'qup_manager_adsp',                   
+     'init_function'              : 'qup_manager_init',     
+     'dependencies'               : ['qmi_fw']     
+    })
+
+if qup_manager_debug_task: 
+  if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(  
+    QUP_MANAGER_USER_IMGS,            
+    {
+     'sequence_group'             : 'RCINIT_GROUP_7',                   
+     'init_name'                  : 'qup_manager_adsp_test',                   
+     'init_function'              : 'qup_manager_test_init',                   
+     'dependencies'               : ['qup_manager_adsp']
+    })
+

@@ -1,0 +1,116 @@
+#===============================================================================
+#	Title: Sconscript
+#
+#	License: License
+#	Copyright 2014 Qualcomm Technologies Inc
+#
+#	Description: 
+#	Sconscript for CoreBSP Products CMM scripts
+#
+#	Team: 
+#	CoreBSP Products team
+#
+#
+#  	$Author: amcheriy $
+#
+#	Location: Perforce Revision
+#  $Header: //components/rel/core.adsp/2.6/products/build/product.scons#1 $
+#
+#
+# edits
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#   	jbilling	: Add CTI interrupt handler, add cmmbuilder calls
+#	amcheriy	: First cut for Badger MPSS 2.0			: 11/11/11
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors
+#-------------------------------------------------------------------------------
+if not os.environ.get('COMPILER','gcc').startswith('llvm'):
+    env.Append(CFLAGS = "-Werror ")
+
+
+
+SRCPATH = "${BUILD_ROOT}/core/products/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL', #needs to be last
+]
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+config='msm8994'     #default to msm8994
+#add to this list as more configs are added
+if env.get('CHIPSET') in ['msm8974','msm8x26','mdm9x25','mdm9x35','apq8084']:
+	config=env.get('CHIPSET')
+	
+
+env.PublishPrivateApi( 'PRODUCTS', [ '${BUILD_ROOT}/core/products/inc/'+ config + '/' ] )
+	
+	
+	
+	
+PRODUCTS_COMMON_SOURCES = [
+		'${BUILDPATH}/cti_irq.c'
+		]
+		
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+platform = 'default'
+if env['HAL_PLATFORM'] in ['8994']:
+   platform = '8994'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary(
+   ['CORE_MODEM','CORE_QDSP6_SW', 'CBSP_QDSP_SW_IMAGE', 'QDSP6_SW_IMAGE'],
+   '${BUILDPATH}/products',
+   PRODUCTS_COMMON_SOURCES)
+   
+if 'USES_RCINIT' in env:
+    RCINIT_IMG = ['CORE_MODEM','CORE_QDSP6_SW', 'CBSP_QDSP_SW_IMAGE', 'QDSP6_SW_IMAGE']
+    env.AddRCInitFunc(              
+        RCINIT_IMG,                       
+        {
+              'sequence_group' : 'RCINIT_GROUP_7',                       # required
+              'init_name'      : 'cti',                        # required
+              'init_function'  : 'cti_irq_init',                        # required
+              'priority_amss_order'        : '2',                       # right above sleep
+              'dependencies'   : ['err_init']
+         })
+         
+
+if 'USES_CMMBUILDER' in env:
+    T32PATH= env['BUILD_ROOT'] + '/core/products/scripts'
+
+    env.AddCMMScripts ('ADSP', [T32PATH], \
+    { 
+        'std_cti_adsp_wrapper.cmm'   :  [['Wake and halt ADSP', 'HALTPROCESSOR'] , \
+                                        ['Wake and attach ADSP', 'WAKEPROCESSOR'] ,\
+                                        ['Inject crash on ADSP', 'CRASHPROCESSOR'] ,\
+                                        ['Setup other cores to break on this core', 'SETCOREASCTIMASTER'] , \
+                                        ['Send CTI-BREAK to all cores', 'SENDCTIBREAKTOALLCORES'] , \
+                                        ['Send CTI-GO to all cores', 'SENDCTIGOTOALLCORES'] 
+                                    ],
+                                    
+        'start_tracing_ETB.cmm' : 	'Start Trace ETB' , \
+        'start_tracing_TPIU.cmm': 	'Start Trace TPIU' \
+    }, \
+        'products')

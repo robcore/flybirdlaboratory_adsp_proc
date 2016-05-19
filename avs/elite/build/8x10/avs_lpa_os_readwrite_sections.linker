@@ -1,0 +1,13 @@
+/* OS data sections read write*/
+/*Cacheline alignment */
+. = ALIGN (32);
+*(.data.os_data_start)  
+*(QURTK.SCHEDULER.data)
+*(QURTK.INTERRUPT.data)
+*(QURTK.FUTEX.data)
+*(QURTK.CONTEXTS.data)
+*(QURT.FASTINT.data)
+*(QURTK.CONTEXTS.TCM.data)
+/* make size to be multiple of 32 bytes*/
+. = ALIGN (32);
+*(.data.os_data_end)

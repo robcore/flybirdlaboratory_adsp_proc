@@ -1,0 +1,94 @@
+#===============================================================================
+#
+# CMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 - 2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/ssc.adsp/2.6.1/common/usam/algo/cmc/build/cmc.scons#1 $
+#  $DateTime: 2014/12/01 08:57:58 $
+#  $Author: pwbldsvc $
+#  $Change: 7052472 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 2014-02-28  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 2014-01-31  ks     added ifmc support for cmc 1.1
+# 2013-10-20  ad     update compiler optimization
+# 2013-6-25   ps     update require method for Public APIs
+# 2013-04-08  jayarama  Initial check-in
+#
+#===============================================================================
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo/cmc/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo/cmc/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+CMC_SOURCES = [
+      '${BUILDPATH}/cmc.c',
+      '${BUILDPATH}/cmc_msg.c',
+      '${BUILDPATH}/motion_feature.c',
+      '${BUILDPATH}/cmc_gmm_probability_computation.c',
+      '${BUILDPATH}/cmc_stats_model.c',
+      '${BUILDPATH}/cmc_lr_probability_computation.c',
+      '${BUILDPATH}/cmc_unfiltered_probability_combiner.c',
+      '${BUILDPATH}/cmc_probability_filter.c',
+      '${BUILDPATH}/cmc_hysteresis.c',
+      '${BUILDPATH}/cmc_heuristics.c',
+      '${BUILDPATH}/genFFTtwiddle.c',
+      '${BUILDPATH}/fft.S',
+   ]
+
+algo_cmc_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+                                    '${BUILDPATH}/sam_algo_cmc', CMC_SOURCES)
+
+# Sources that should not be shared
+CMC_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/algo/cmc/src')
+
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # headers that should not be shared in HD22
+   CMC_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo/cmc/inc')
+
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], CMC_CLEAN_SOURCES)

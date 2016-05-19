@@ -1,0 +1,90 @@
+#===============================================================================
+#
+# Modem Scenarios Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/ssc.adsp/2.6.1/sam/algo-ship/modem_scn/build/modem_scn.scons#1 $
+#  $DateTime: 2014/12/01 08:57:58 $
+#  $Author: pwbldsvc $
+#  $Change: 7052472 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04-04-2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 10-24-13    sc     modify to disable source packing
+# 08-17-10    ad     initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/sam/algo-ship/modem_scn/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/sam/algo/common/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo-ship/modem_scn/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+MODEM_SCN_SOURCES = [
+      '${BUILDPATH}/modem_scn.c',
+   ]
+   
+if 'SENSORS_DD_DEV_FLAG' in env:
+    algomodem_scn_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+                                    '${BUILDPATH}/sam_algo_modem_scn',
+                                    MODEM_SCN_SOURCES)
+
+    # Sources that should not be shared
+    MODEM_SCN_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/sam/algo-ship/modem_scn/src')
+    MODEM_SCN_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/sam/algo-ship/modem_scn/inc')
+	
+    # Clean sources
+    env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+	    MODEM_SCN_CLEAN_SOURCES)
+    
+else:
+    algomodem_scn_lib = env.Library( "${BUILDPATH}/sam_algo_modem_scn", MODEM_SCN_SOURCES)
+
+    #-------------------------------------------------------------------------------
+
+    # Add Libraries to image
+
+    #-------------------------------------------------------------------------------
+   
+
+    env.AddLibsToImage( 
+	    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+	    algomodem_scn_lib )
+

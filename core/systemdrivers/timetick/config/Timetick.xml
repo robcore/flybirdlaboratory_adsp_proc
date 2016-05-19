@@ -1,0 +1,98 @@
+<driver name="Timetick">
+  <device id=DALDEVICEID_TIMETICK>
+     <props name="SystemTimer" type=DALPROP_ATTR_TYPE_UINT32>
+       DALDEVICEID_QTIMER
+     </props>
+  </device>
+  #if (DAL_CONFIG_TARGET_ID == 0x8994)
+  <device id=DALDEVICEID_QTIMER>
+     <props name="DEFAULT_FREQUENCY" type=DALPROP_ATTR_TYPE_UINT32>
+       19200000 
+     </props>
+     <props name="QTIMER_BASE" type=DALPROP_ATTR_TYPE_UINT32>
+       0xFE000000 
+     </props>
+     <props name="QTIMER_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x002A2000 
+     </props>
+     <props name="QTIMER_FRAME" type=DALPROP_ATTR_TYPE_UINT32>
+       1 
+     </props>
+     <props name="QTIMER_AC_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x002A0000 
+     </props>
+     <props name="QTIMER_INTVECTNUM" type=DALPROP_ATTR_TYPE_UINT32>
+       3 
+     </props>
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32>
+       0x1
+     </props>
+  </device>
+  <device id="WakeUpTimer">
+     <props name="DEFAULT_FREQUENCY" type=DALPROP_ATTR_TYPE_UINT32>
+       19200000 
+     </props>
+     <props name="QTIMER_BASE" type=DALPROP_ATTR_TYPE_UINT32>
+     0xFE000000
+     </props>
+	  <props name="QTIMER_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x002A3000 
+     </props>
+     <props name="QTIMER_FRAME" type=DALPROP_ATTR_TYPE_UINT32>
+       2 
+     </props>
+     <props name="QTIMER_AC_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x002A0000 
+     </props>
+     <props name="QTIMER_INTVECTNUM" type=DALPROP_ATTR_TYPE_UINT32>
+       88 
+     </props>
+  </device>
+  #elif (DAL_CONFIG_TARGET_ID == 0x8996)
+  <device id=DALDEVICEID_QTIMER>
+     <props name="DEFAULT_FREQUENCY" type=DALPROP_ATTR_TYPE_UINT32>
+       19200000 
+     </props>
+     <props name="QTIMER_BASE" type=DALPROP_ATTR_TYPE_UINT32>
+       0x09000000 
+     </props>
+     <props name="QTIMER_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x003A2000 
+     </props>
+     <props name="QTIMER_FRAME" type=DALPROP_ATTR_TYPE_UINT32>
+       1 
+     </props>
+     <props name="QTIMER_AC_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x003A0000 
+     </props>
+     <props name="QTIMER_INTVECTNUM" type=DALPROP_ATTR_TYPE_UINT32>
+       3 
+     </props>
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32>
+       0x1
+     </props>
+  </device>
+  <device id="WakeUpTimer">
+     <props name="DEFAULT_FREQUENCY" type=DALPROP_ATTR_TYPE_UINT32>
+       19200000 
+     </props>
+     <props name="QTIMER_BASE" type=DALPROP_ATTR_TYPE_UINT32>
+       0x09000000
+     </props>
+	  <props name="QTIMER_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x003A3000 
+     </props>
+     <props name="QTIMER_FRAME" type=DALPROP_ATTR_TYPE_UINT32>
+       2 
+     </props>
+     <props name="QTIMER_AC_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>
+       0x003A0000 
+     </props>
+     <props name="QTIMER_INTVECTNUM" type=DALPROP_ATTR_TYPE_UINT32>
+       30 
+     </props>
+   </device>
+  #endif
+</driver>
+
+

@@ -1,0 +1,69 @@
+;****************************************************************
+; filename: DSP_timestamp_check.cmm
+;
+;****************************************************************
+LOCAL &filetim &filetime
+entry &ts &tsa &logName &logNam 
+print "Comparing QCOM time stamps"
+
+TOOLBAR ON
+STATUSBAR ON
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+;sys.cpu HexagonV5H
+;sys.up
+
+&ts=V.VALUE((char *)qcom_timestampstring)
+&logName=DATA.STRING(D:&ts)
+
+;&tsa=V.VALUE((char *)Qcom_ImageCreationDate)
+;&logNam=DATA.STRING(D:&tsa)
+
+
+OPEN #1 qcom_timestamp.h /Read
+READ #1 %line &filetime
+&filetim=string.mid("&(filetime)", 25, 32)
+&vartim=string.mid("&(logName)", 0, 32)
+
+print "qcom_timestampstring is &logName"
+print "Qcom_ImageCreationDate in qcom_timestamp.h is &filetime"
+
+;print "filetim is &filetim"
+;print "vartim is &vartim"
+
+if "&vartim"=="&filetim"
+(
+print "qcom time stamps matched"
+)
+else 
+(
+print "qcom time stamps mismatched"
+)
+
+;----------------------------------------------------------------------------
+; Comparing ENGG time stamps
+;----------------------------------------------------------------------------
+print "Comparing ENGG time stamps"
+
+
+&ts=V.VALUE((char *)engg_timestampstring)
+&logName=DATA.STRING(D:&ts)
+
+OPEN #1 engg_timestamp.h /Read
+READ #1 %line &filetime
+&filetim=string.mid("&(filetime)", 25, 32)
+&vartim=string.mid("&(logName)", 0, 32)
+
+print "engg_timestampstring is &logName"
+print "Engg_ImageCreationDate in engg_timestamp.h is &filetime"
+
+if "&vartim"=="&filetim"
+(
+print "Engg time stamps matched"
+)
+else 
+(
+print "Engg time stamps mismatched"
+)

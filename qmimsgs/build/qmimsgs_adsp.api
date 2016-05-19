@@ -1,0 +1,77 @@
+#===============================================================================
+#
+# INTERFACES - QMI APIs Include Paths for ADSP images
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2012-2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  $Header: //components/rel/qmimsgs.adsp/2.6.1/build/qmimsgs_adsp.api#1 $
+#  $DateTime: 2015/01/21 21:23:46 $
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/23/14   pm      Added QUPM.
+# 08/15/14   pm      Added LOWI.
+# 06/20/14   pm      Added WLPS.
+# 06/20/14   pm      Added WLS.
+# 02/11/14   pm      Added QDSSC.
+# 11/26/13   pm      Added COEX.
+# 07/30/13   mpa     Added SNS_COMMON, SNS_SAM_(AMD,QMD,RMD,DB,PED)
+# 02/22/13   mpa     Added TMD.
+# 02/14/13   mpa     Added RFRPE.
+# 10/17/12   mpa     Added SLIMBUS.  Publish common path for all services.
+# 09/12/12   mpa     Baseline  
+#===============================================================================
+Import('env')
+
+env.Replace(QMIMSGS_ROOT = '${INC_ROOT}/qmimsgs')
+
+#-------------------------------------------------------------------------------
+# Publish Public QMI APIs
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('COEX',       ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/coex/api"])
+env.PublishPublicApi('COMMON',     ["${QMIMSGS_ROOT}/common/api"])
+env.PublishPublicApi('LOWI',       ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/lowi/api"])
+env.PublishPublicApi('QDSSC',      ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/qdssc/api"])
+env.PublishPublicApi('QUPM',       ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/qupm/api"])
+env.PublishPublicApi('RFRPE',      ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/rfrpe/api"])
+env.PublishPublicApi('RFSA',       ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/rfsa/api"])
+env.PublishPublicApi('SLIMBUS',    ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/slimbus/api"])
+env.PublishPublicApi('SNS_COMMON', ["${QMIMSGS_ROOT}/sns_common/api"])
+env.PublishPublicApi('SNS_SAM_QMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_qmd/api"])
+env.PublishPublicApi('SNS_SAM_AMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_qmd/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_amd/api"])
+env.PublishPublicApi('SNS_SAM_RMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_qmd/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_rmd/api"])
+env.PublishPublicApi('SNS_SAM_DB', ["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_db/api"])
+env.PublishPublicApi('SNS_SAM_PED',["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_ped/api"])
+env.PublishPublicApi('TEST',       ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/test/api"])
+env.PublishPublicApi('TMD',        ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/tmd/api"])
+env.PublishPublicApi('WLPS',       ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/wlps/api"])                                    
+env.PublishPublicApi('WLS',        ["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/wls/api"])
+env.LoadAPIUnits()

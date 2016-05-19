@@ -1,0 +1,156 @@
+#===============================================================================
+#
+# Basic skeleton image scrip
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/apr_libs/build/apr_libs.scons#5 $
+#  $DateTime: 2014/10/30 11:46:53 $
+#  $Change: 6862399 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+Import('env')
+import os
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should 
+# never be two images with the same unique name
+aliases = ['apr_libs', 'adsp_proc', 'adsp_images', 'adsp_mpd_images', 'adsp_core_images', 'adsp_mpd_core_images',
+           'msm8992_MPD', 'msm8994_MPD', 'msm8996_MPD'
+          ]
+
+   
+build_tools = ['buildspec_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py'
+]   
+         
+#------------------------------------------------------------------------------
+# Init environment variables
+env.InitImageVars(
+   alias_list=aliases,  # aliases list
+   proc='qdsp6',      # proc (depending on tool chain arm, hexago, etc)
+   config='adsp',
+   plat='qurt',           # platform (l4, blast, foo, bar, etc)
+#build_tags = ['BASIC_IMAGE_EXAMPLE'],
+
+   build_tags = ['APR_ADSP','APR_ADSP_ROOT'],
+   tools = build_tools
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+if 'USES_MULTI_PD' in env:
+   env.PrintInfo("This adsp avs libs are being built for Multi PD version")
+   env.AddUsesFlags('USES_MPD')
+   env.AddUsesFlags('USES_QURTOS_IMG') #this is the flag to be used for mpd builds to compile for guest os
+   env.Append(CPPDEFINES=["MULTI_PD_BUILD"])
+else:
+   env.PrintInfo("This adsp apr lib is being built for Single PD version")
+
+
+#---------------------------------------------------------------------------
+# Load in the tools-set init scripts
+#---------------------------------------------------------------------------
+
+#Add ADSP Image specific linker inputs here
+env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build'])
+ 
+#Append sim flag if building for sim 
+if 'USES_AVS_TEST' in env:
+    env.Append(CFLAGS='-DSIM')
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load APR libs/objs build rules.
+if env.PathExists("${BUILD_ROOT}/apr"):
+   au_name_items = env.LoadAreaSoftwareUnits('apr')
+   image_libs.extend(au_name_items['LIBS'])
+   image_objs.extend(au_name_items['OBJS'])
+
+image_units = [image_objs, image_libs]
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+   
+   image_units += local_itmes
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+
+   # this is where the rule to "link" is done.
+   #image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs, LIBS=image_libs)
+   
+   # this is just to create something for testing
+   image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [image_objs, image_libs], 
+         add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+   
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

@@ -1,0 +1,71 @@
+/*-----------------------------------------------------------------------
+   Copyright (c) 2014 QUALCOMM Technologies, Incorporated.
+   All Rights Reserved.
+   QUALCOMM Proprietary.
+-----------------------------------------------------------------------*/
+
+#include "AEEStdDef.idl"
+
+/** This file is parsed by 'qaic' to generate 'sysmon.h' which will have the following function declarations.
+	The generated 'sysmon.h' file has to be included in files referring below functions
+*/
+
+/** Sysmon return types */
+enum  sysmon_return_types{
+	SYSMON_E_OK,
+	SYSMON_E_INVALID,
+	SYSMON_E_ALREADY,
+	SYSMON_E_DISABLED
+};
+
+interface sysmon {
+	/** FUNCTION: sysmon_register_user_pmu_events
+		PARAMS: unsigned int enable,
+					@values:
+						1 - enable user configuration
+						0 - disable user configuration
+				unsigned int sampling_period_ms,
+					@description: required sampling period in milli-seconds
+				unsigned int samples_per_set,
+					@description: required samples per set before going to the next set of PMU events
+				unsigned int samples_to_capture,
+					@description: total no. of required samples (including all sets). Used for exiting user config.
+					@values:
+						n - number of samples to capture
+						0 - for infinite logging till an explicit disable
+				unsigned int default_set_enable,
+					@values:
+						1 - keep PMU config intact (default mode)
+						0 - read from provided PMU event array (user mode)
+				const unsigned char *pmu_ptr,
+					@description: a char array pointer having desired PMU events
+				int pmu_ptrLen
+					@description: size of pmu_ptr array
+		DESCRIPTION:
+				To be used to enable/disable profiling
+	 */
+    long register_user_pmu_events(
+        in unsigned long enable,
+        in unsigned long sampling_period_ms,
+        in unsigned long samples_per_set,
+        in unsigned long samples_to_capture,
+        in unsigned long default_set_enable,
+        in sequence<octet> pmu_ptr
+        );
+
+	/** FUNCTION: sysmon_usermode_buffer_copy
+		PARAMS: unsigned char *output_buf,
+					@description: Pointer to the output buffer
+				int output_bufLen,
+					@description: size of output_buf
+				int *size_copied
+					@description: Output of this function. Holds no. of bytes copied
+		DESCRIPTION:
+				For copying log items from 'sysmon' to the
+				provided output_buf
+	 */
+    long usermode_buffer_copy(
+    	rout sequence<octet> output_buf,
+    	rout long size_copied
+    	);
+};

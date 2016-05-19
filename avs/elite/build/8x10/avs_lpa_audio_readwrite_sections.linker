@@ -1,0 +1,11 @@
+/*LPA audio data section read write*/
+/*Cacheline alignment */
+. = ALIGN (32);
+*(.bss.audio_data_start)
+*(.bss.lpa_heap)
+*(.bss.lpa_audio_static_svc_mxar)
+*(.bss.lpa_audio_static_svc_afe)
+*(.bss.lpa_audio_lpm)
+/* make size to be multiple of 32 bytes*/
+. = ALIGN (32);
+*(.bss.audio_data_end)

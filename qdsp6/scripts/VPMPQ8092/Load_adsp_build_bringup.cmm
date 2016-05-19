@@ -1,0 +1,172 @@
+;****************************************************************
+; filename: DSP_connect_loadDSP.cmm
+; 	this script is utilized to connect to VPMPQ8092, load SMD data structure and load DSP image
+; please enter
+;	1. the Port ID : used to connect VPMPQ8092
+;	   required
+;	2. SMD FLAG :  used to indicate to load share memory data structure
+;	   optional, default value is not loading SMD
+; usage:
+; 	DSP_connect_loadDSP <Port number> <SMD>
+; example:
+; 	DSP_connect_loadDSP 1967 SMD
+; 	DSP_connect_loadDSP 1967
+;****************************************************************
+
+//entry &p_Port_ID &SMD_flag
+global &Qube_va
+global &Qube_pa
+//print "You have entered &p_Port_ID as Port ID to connect VPM8092"
+
+TOOLBAR ON
+STATUSBAR ON
+;WINPAGE.RESET
+
+;******************************************************************
+; Reset QDSP6 through intercomm command
+;******************************************************************
+
+;----------------------------------------------------------------------------
+; Choose hex mode for input
+;----------------------------------------------------------------------------
+radix hex
+area
+area.select
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+sys.cpu HexagonV5
+;----------------------------------------------------------------------------
+; Attach to the Virtio simulation
+;----------------------------------------------------------------------------
+//sys.mcdconfig arch=v5 port=&p_Port_ID simargs=""
+
+SYMBOL.SOURCEPATH.RESET
+SYMBOL.SOURCEPATH.SETDIR
+
+MAP.RESET
+SYMBOL.ASMFRAME ON
+SYMBOL.CUTLINE 3
+SYMBOL.CASE OFF
+
+SYSTEM.OPTION.ICFLUSH ON 
+MAP.RESET
+MMU.OFF
+MMU.DELETE
+SYMBOL.SOURCEPATH.RESET
+
+// Attach to the ADSP T32 session.
+sys.mode.attach
+
+;----------------------------------------------------------------------------
+; Setup look and feel
+;----------------------------------------------------------------------------
+
+;----------------------------------------------------------------------------
+; Print banner
+;----------------------------------------------------------------------------
+print "8092 ADSP Bringup"
+title "8092 ADSP_QDSP6 Standalone Bringup"
+;----------------------------------------------------------------------------
+; Open the register set
+;----------------------------------------------------------------------------
+register /spotlight
+
+;----------------------------------------------------------------------------
+; Open the source listing
+;----------------------------------------------------------------------------
+data.list
+
+;----------------------------------------------------------------------------
+;Recall and Define History File
+;----------------------------------------------------------------------------
+autostore , history
+
+sYmbol.SourcePath.reset
+
+;----------------------------------------------------------------------------
+; load SMD structure	
+;----------------------------------------------------------------------------
+print "loading SMD structure ......."
+d.load.binary .\qdsp6\misc\smem_initialized_VPMPQ8092.bin eaxi:0x0fa00000 /noclear /nosymbol
+print "SMD structure loaded. Done"
+
+wait.4s
+;----------------------------------------------------------------------------
+; load DSP Image
+;----------------------------------------------------------------------------
+print "loading DSP Image ......."
+// Load the main .PBN file.
+D.LOAD.ELF .\build\ms\bootimage_relocflag.pbn eaxi: /strippart "adsp_proc" /sourcepath "adsp_proc" /noclear /nosymbol
+// load image symbols
+d.load.elf .\build\ms\M8092AAAAAAAAQ1234.elf /NOCODE /NOREG /strippart "adsp_proc" /sourcepath "."
+
+print "DSP Image loaded. Done"
+&Qube_va=address.offset(start);
+&Qube_pa=0x0db00000
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+// Go to the PRNG initialization, and force the hardware block on.  This will avoid waiting for the number to be generated.
+b.s PrngML_getdata_lite
+// this "go" will run to break point "brkpt", 0x0DB006AC
+go
+d.l
+// this "go" will run to PrngML_getdata_lite and stop
+go
+wait.15s
+
+
+//===============================================
+//do .\qdsp6\scripts\VPMPQ8x26\DSP_load_osam.cmm
+//===============================================
+
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+mmu.tlb.scan
+mmu.format Blast QURTK_pagetables &Qube_va--(&Qube_va+0xffffff) &Qube_pa
+mmu.on
+mmu.autoscan on
+mmu.tablewalk on
+
+; LOAD RTOS AWARENESS MODULE
+TASK.CONFIG .\core\kernel\qurt\install\ADSPv5MP\debugger\T32\qurt_model.t32
+MENU.ReProgram .\core\kernel\qurt\install\ADSPv5MP\debugger\T32\qurt_model.men
+
+
+b.l
+
+V that_rpm_guy_is_crazy = 0x1
+v sleep_allow_low_power_modes = 0
+v g_prng_config_enable = 1
+
+
+;----------------------------------------------------------------------------
+; set breakpoints
+;----------------------------------------------------------------------------
+b.s main /onchip
+b.s QURTK_handle_error /p
+b.s QURTK_tlb_crash /p
+b.s QURTK_error /p
+b.s err_fatal_handler /p
+
+//D.S D:&Qube_pa+0x30 %LE %LONG 1
+//D.S D:&Qube_pa+0x34 %LE %LONG 1
+//D.S D:&Qube_pa+0x38 %LE %LONG 1
+
+
+;temporary workaround for some power collapse issues, disable sleep
+// Manually sets the MPM for QTimers.
+//D.S 0xFC4A1000 0x1
+//D.S D:0xFE200020 %LE %LONG 0x0000030E 
+//v g_prng_config_enable = 1
+
+// temporary fix from virtio issue( WDT)
+//D.S D:0xFE28200C %LE %LONG 0xffffffff 
+//D.S D:0xFE282010 %LE %LONG 0xffffffff 
+//D.S D:0xFE282014 %LE %LONG 0xffffffff 
+
+// this "go" will run to main
+go
+
+end

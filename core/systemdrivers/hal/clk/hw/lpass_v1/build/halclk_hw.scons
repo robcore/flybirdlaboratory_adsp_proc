@@ -1,0 +1,168 @@
+#===============================================================================
+#
+# HAL CLK HARDWARE LIBRARY
+#
+# Target:    MSM Binary Compatible Targets
+# Processor: All
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/systemdrivers/hal/clk/hw/lpass_v1/build/halclk_hw.scons#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+HAL_CLK_HW_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi("SYSTEMDRIVERS_HAL_CLK_HW", [
+  HAL_CLK_HW_BUILD_ROOT + "/../inc",
+])
+
+
+#-----------------------------------------------------------------------------
+# Sources: HALClock HW Sources
+#-----------------------------------------------------------------------------
+
+HAL_CLK_HW_SOURCES = [
+    '${BUILDPATH}/src/HALclkMain.c',
+    '${BUILDPATH}/src/HALclkTest.c',
+    '${BUILDPATH}/src/lcc/HALclkQ6.c',
+    '${BUILDPATH}/src/lcc/HALclkBUS.c',
+    '${BUILDPATH}/src/lcc/HALclkCXO.c',
+    '${BUILDPATH}/src/lcc/HALclkMIDI.c',
+    '${BUILDPATH}/src/lcc/HALclkRESAMPLER.c',
+    '${BUILDPATH}/src/lcc/HALclkSLEEP.c',
+    '${BUILDPATH}/src/lcc/HALclkSPDM.c',
+    '${BUILDPATH}/src/lcc/HALclkSLIMBus.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFPCMOE.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFPRIMI2SMSTR.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFPRIPCMSLV.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFQUAMI2SSLV.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFSECMI2SMSTR.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFSECPCMSLV.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFSPKRI2SSLV.c',
+    '${BUILDPATH}/src/lcc/HALclkAIFTERMI2SSLV.c',
+    '${BUILDPATH}/src/lcc/HALclkCDC.c',
+    '${BUILDPATH}/src/lcc/HALclkATIME.c',
+    '${BUILDPATH}/src/lcc/HALclkSIF.c',
+    '${BUILDPATH}/src/lcc/HALclkSPDIFTXBMC.c',
+    '${BUILDPATH}/src/lcc/HALclkLPASSMain.c',
+    '${BUILDPATH}/src/gcc/HALclkGCCMain.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP1QUP1.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP1QUP2.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP1QUP3.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP1QUP4.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP1QUP5.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP1QUP6.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP2QUP1.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP2QUP2.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP2QUP3.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP2QUP4.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP2QUP5.c',
+    '${BUILDPATH}/src/gcc/HALclkBLSP2QUP6.c',
+    '${BUILDPATH}/src/gcc/HALclkConfigNOC.c',
+    '${BUILDPATH}/src/gcc/HALclkGCC.c',
+    '${BUILDPATH}/src/gcc/HALclkPeriphNOC.c',
+    '${BUILDPATH}/src/gcc/HALclkSPMI.c',
+    '${BUILDPATH}/src/gcc/HALclkSystemNOC.c'
+]
+
+HALClockHW_lib = env.Library('${BUILDPATH}/HALclk_hw', HAL_CLK_HW_SOURCES)
+
+HAL_CLOCK_ASM_OBJS = [ '${BUILDPATH}/src/HALclkInitASM.S' ]
+
+#-------------------------------------------------------------------------------
+# Sources: HALClockHW Library Creation
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(
+   ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+   HALClockHW_lib)
+
+env.AddObject(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], HAL_CLOCK_ASM_OBJS)
+
+# ============================================================================
+# HWIO
+# ============================================================================
+
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/hal/clk/hw/lpass/inc/HALclkHWIO.h',
+      'modules': ['GCC_CLK_CTL_REG', 'LPASS_LPASS_CC_REG', 'LPASS_QDSP6SS_PUB', 'CORE_TOP_CSR'],
+      'filter-exclude': ['TSENS', 'ACR', 'RPU', 'RESERVED'],
+      'output-offsets': True,
+      'header':
+        '/*\n'
+        ' * HWIO base definitions\n'
+        ' */\n'
+        'extern  uint32                     HAL_clk_nHWIOBaseTop;\n' +
+        '#define CLK_CTL_BASE               HAL_clk_nHWIOBaseTop\n' +
+        '#define CLK_CTL_BASE_PHYS          0xFC400000\n' +
+        '#define CLK_CTL_BASE_SIZE          0x00010000\n' +
+        '#define PROC_CLK_BRANCH_ENA_VOTE   GCC_LPASS_DSP_CLOCK_BRANCH_ENA_VOTE\n\n' +
+        'extern uint32                      HAL_clk_nHWIOBaseLPASS;\n' +
+        '#define LPASS_BASE                 HAL_clk_nHWIOBaseLPASS\n' +
+        '#define LPASS_BASE_PHYS            0xFE000000\n' +
+        '#define LPASS_LPASS_BASE           LPASS_BASE\n' +
+        '#define LPASS_BASE_SIZE            0x00300000\n' +
+        '#define CORE_TOP_CSR_BASE          0x0xfd480000',
+    },
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/hal/clk/hw/lpass/inc/HALclkHWIOASM.h',
+      'modules': ['LPASS_LPASS_CC_REG', 'LPASS_QDSP6SS_PUB','CORE_TOP_CSR'],
+      'filter-exclude': ['TSENS', 'ACR', 'RPU', 'RESERVED'],
+      'output-offsets': True,
+      'header':
+        '/*\n'
+        ' * HWIO base definitions\n'
+        ' */\n'
+        '#define LPASS_BASE                 LPASS_BASE_PHYS\n' +
+        '#define LPASS_BASE_PHYS            0xFE000000\n' +
+        '#define LPASS_LPASS_BASE           LPASS_BASE\n' +
+        '#define LPASS_BASE_SIZE            0x00300000\n' +
+        '#define CORE_TOP_CSR_BASE          0x0xfd480000',
+    }
+  ])
+

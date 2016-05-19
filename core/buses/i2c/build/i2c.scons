@@ -1,0 +1,175 @@
+#===============================================================================
+#
+# I2C Libs
+#
+# GENERAL DESCRIPTION
+#    Public build script for I2C BUS driver.
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/buses/i2c/build/i2c.scons#2 $
+#  $DateTime: 2014/10/21 12:59:26 $
+#  $Author: pwbldsvc $
+#  $Change: 6809349 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/29/14   np      Added support for 8992
+# 05/12/14   lk      Moved init to sensors image.
+# 02/28/14   lk      Added support for 8994.
+# 05/24/13   lk      Added support for 8084, 8962.
+# 02/09/12   lk      Added device inc path.
+# 02/09/12   lk      Added configurable properties file.
+# 02/09/12   ag      Fixed the location where the object files are built.
+# 01/21/12   ag		 Initial release
+#
+#===============================================================================
+Import('env')
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+#print env
+# Additional defines
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+#env.Append(CCFLAGS = " -O3 ")
+
+SRCPATH = ".."
+
+IMAGES = []
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+CBSP_APIS = []
+I2C_CONFIG_XML = []
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_I2C_DEVICE', [
+   '${INC_ROOT}/core/buses/i2c/src/dev',
+   '${INC_ROOT}/core/buses/i2c/src/drv',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS += [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'KERNEL',   
+   'SERVICES',
+   'POWER'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+     
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+#I2C_DEVICE_GLOB_FILES = env.GlobFiles('../src/*/*.c', posix=True)
+
+I2C_SRC = [
+   '${BUILDPATH}/src/dev/I2cDeviceInit.c'    ,
+   '${BUILDPATH}/src/drv/I2cBsp.c'           ,
+   '${BUILDPATH}/src/drv/I2cDriverInit.c'    ,
+   '${BUILDPATH}/src/drv/I2cPlatSvcInit.c'   ,
+   '${BUILDPATH}/src/drv/I2cDriverDalFwk.c'  ,
+]
+
+
+I2C_ISLAND_SRC = [
+   '${BUILDPATH}/src/dev/I2cDevice.c'        ,
+   '${BUILDPATH}/src/drv/I2cDriver.c'        ,
+   '${BUILDPATH}/src/drv/I2cPlatSvc.c'       ,
+   '${BUILDPATH}/src/drv/I2cSys.c'           ,
+]
+ 
+#GLOB returns the relative path name, it needs to replaced with correct build location
+#I2C_DEVICE_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in I2C_DEVICE_GLOB_FILES]
+
+
+if env.has_key('ADSP_PROC') and env['MSM_ID'] in ['8974','9x25','8x26','8084','8962','9x35','8994','8992']:
+   IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SW','CORE_QDSP6_SENSOR_SW']
+
+   if env['MSM_ID'] in ['8992']:
+      I2C_ISLAND_SRC.append('${BUILDPATH}/config/i2c_adsp_8992.c')
+   elif env['MSM_ID'] in ['8994']:
+      I2C_ISLAND_SRC.append('${BUILDPATH}/config/i2c_adsp_8994.c')
+ 
+elif env.has_key('APPS_PROC') and env['MSM_ID'] in ['9x25','9x35']:
+   IMAGES = ['APPS_IMAGE',      'CBSP_APPS_IMAGE']
+else:
+   Return(); 
+
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+# env.AddLibrary is a new API, only if the IMAGES is valid in the build env
+# the objects will built and added to the image.
+#-------------------------------------------------------------------------------
+
+if 'USES_ISLAND' in env:
+    U_IMG_LIB = env.AddLibrary(
+      ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+      '${BUILDPATH}/I2cDriver_UImg', I2C_ISLAND_SRC)
+    env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], U_IMG_LIB)
+else:
+    I2C_SRC.append(I2C_ISLAND_SRC)
+
+BIG_IMG_LIB = env.AddLibrary(IMAGES, '${BUILDPATH}/I2cDriver', I2C_SRC)
+
+
+
+tags = ['CORE_QDSP6_SW']
+
+
+#---------------------------------------------------------------------------
+# RCINIT
+#---------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_QDSP6_SENSOR_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_DRIVER_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_7',                # required
+     'init_name'                  : 'I2cBsp_Init',                   # required
+     'init_function'              : 'I2cBsp_Init',                   # required
+    })
+
+#---------------------------------------------------------------------------
+# Device Config
+#---------------------------------------------------------------------------
+#if 'USES_DEVCFG' in env:
+#   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+#   env.AddDevCfgInfo(DEVCFG_IMG, 
+#   {
+#      '8974_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_8974.xml'],
+#      '9x25_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_9625.xml'],
+#      '8x26_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_8x26.xml'],
+#      '8084_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_8084.xml'],
+#      '8962_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_8962.xml'],
+#      '9x35_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_9x35.xml'],
+#      '8994_xml'    : ['${BUILD_ROOT}/core/buses/i2c/config/i2c_adsp_8994.c']
+#   })
+

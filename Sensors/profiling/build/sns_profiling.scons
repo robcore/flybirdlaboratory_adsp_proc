@@ -1,0 +1,224 @@
+#===============================================================================
+#
+# PROFILING Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/10/2014  MW     Fixed HD22 section
+# 11/24/2014  pn     Added SNS_SMGR_COPY_DEPOT event
+# 10/06/2014  jhh    Added events for PM
+# 10/02/2014  pn     Added SNS_RH_RPT_TIMER_SET event
+# 09/23/2014  pn     Added events for RH
+# 06/05/2014  VY     Updated scons for uImage tagging
+# 04/18/2014  sc     Removed target-specific folders
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 01/27/2014  hw     Add QDSS SW events for sam_algo_update when dependent algo
+#                    input received
+# 10/31/2013  hw     Add QDSS SW events and support for Sensors' logging
+# 06/25/2013  ps     update require method for Public APIs
+# 12/31/2012  hw     Initial version of smgr profiling code
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/profiling/src"
+
+#if not env.SubstPathExists(SRCPATH):
+#   # Legay Path
+#   SRCPATH = "${BUILD_ROOT}/Sensors/profiling"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+  ])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'AVS',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'HWIO',
+   'HWIO_API',
+   'SERVICES',
+   'BUSES',
+   'POWER',
+   'DEBUGTRACE',
+    # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+#env.RequireExternalApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API, area='core')
+
+env.UsesInc([
+   "${HWIO}",
+   "${HWIO_API}",
+])
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/dsps/src/common",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/profiling/inc",
+])
+
+#if env.has_key('DAL_UCOS_TEST'):
+ # env.Append(CPPPATH = [
+  #   "${BUILD_ROOT}/Sensors/ddf/inc",
+   #  "${BUILD_ROOT}/Sensors/dd/inc",
+    # "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+ # ])
+
+#-------------------------------------------------------------------------------
+# QDSS Events for Sensors
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['SNS_SMGR_ENTER', 'Receive signals 0x%x', 'F'],
+             ['SNS_SMGR_EXIT','Finish processing signals', 'F'],
+             ['SNS_SMGR_TIMER_CB','Timer callback', 'F'],
+             ['SNS_SMGR_NOTIFY_IRQ','Notify irq with param: %d', 'F'],
+             ['SNS_SMGR_NOTIFY_DATA','sensor=%d #samples=%d last_ts=%u', 'F'],
+             ['SNS_SMGR_FUNC_ENTER','Smgr entry: %d', 'F'],
+             ['SNS_SMGR_COPY_DEPOT','sensor=%u #samples=%u', 'F'],
+             ['SNS_SMGR_DD_ENTER_GET_DATA','Enter get_data with sensor_id %d', 'F'],
+             ['SNS_SMGR_DD_ENTER_HANDLE_IRQ','Enter handle_irq with gpio_num: %d', 'F'],
+             ['SNS_SMGR_DD_ENTER_HANDLE_TIME','Enter handle_timer', 'F'],
+             ['SNS_SMGR_DD_EXIT','Exit driver function: %d', 'F'],
+             ['SNS_SMGR_DD_BUS_READ_ENTER','Enter i2c read', 'F'],
+             ['SNS_SMGR_DD_BUS_READ_EXIT','Exit i2c read with reason %d', 'F'],
+             ['SNS_RH_ENTER','Received signals 0x%x at time %u', 'F'],
+             ['SNS_RH_EXIT','Finished processing signals', 'F'],
+             ['SNS_RH_RPT_REQ','Report Request rpt=%d conn=0x%x type=%d action=%d', 'F'],
+             ['SNS_RH_LINK_SENSOR','Link/unlink to sensor=%d change=%d #items=%d', 'F'],
+             ['SNS_RH_RPT_TIMER_SET','earliest=%u offset=%u', 'F'],
+             ['SNS_RH_RPT_IND_START','Sending rpt=%d conn=0x%x type=%d #items=%d', 'F'],
+             ['SNS_RH_RPT_IND_END','Done sending rpt=%d #items=%d sent=%d', 'F'],
+             ['SNS_RH_BUF_TRAIN_START','Sending rpt=%d conn=0x%x #sensors=%d', 'F'],
+             ['SNS_RH_BUF_TRAIN_END','Sent #ind=%d #samples=%d next=%u', 'F'],
+             ['SNS_SAM_ENTER', 'SAM receive signals sig_flag = 0x%x', 'F'],
+             ['SNS_SAM_EXIT', 'SAM finish processing', 'F'],
+             ['SNS_SAM_ALGO_UPDATE_ENTER', 'SAM Algo_update enter upon receiving data: sensorUID 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_UPDATE_EXIT','SAM Algo_update exit: sensorUID = 0x%x, algoInstId = 0x%x, input processedCnt = %d', 'F'],
+             ['SNS_SAM_ALGO_PROCESS_INPUT_ENTER', 'SAM Algo_update algoInst sensorUID = 0x%x, algoInstId = 0x%x, input type = %x', 'F'],
+             ['SNS_SAM_ALGO_PROCESS_INPUT_EXIT', 'SAM Algo_update algoInst sensorUID = 0x%x, algoInstId = 0x%x, input type = %x', 'F'],
+             ['SNS_SAM_ALGO_REPORT_ENTER', 'SAM Algo_report enter: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_REPORT_EXIT','SAM Algo_report enter: sensorUID = 0x%x, algoInstId = 0x%x, processedCnt = %d', 'F'],
+             ['SNS_SAM_PROCESS_IND_START','SAM proces ind start: report_id = %d', 'F'], # Legacy SAM Events
+             ['SNS_SAM_PROCESS_IND_END','SAM process ind end: report_id = %d', 'F'], # Legacy SAM events
+             ['SNS_SAM_PROCESS_IND_ENTER','SAM proces ind start: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_PROCESS_IND_EXIT','SAM process ind end: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_RUN_ENTER','SAM enter algo_run: algoInst sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_RUN_EXIT','SAM exit algo_run: algoInst sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_UIMAGE_ENTER','SAM enter uimage', 'F'],
+             ['SNS_SAM_UIMAGE_EXIT','SAM exit uimage: blockType = %d, count = %d', 'F'],
+             ['SNS_SAM_ALGO_ENABLE_ENTER','SAM start enabling algo 0x%x', 'F'],
+             ['SNS_SAM_ALGO_ENABLE_EXIT','SAM finish enabling algo 0x%x', 'F'],
+             ['SNS_SAM_ALGO_CB_ADD_INPUT_ENTER','SAM cbfunc add_input enter: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_CB_ADD_INPUT_EXIT','SAM cbfunc add_input exit: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_CB_ADD_OUTPUT_ENTER','SAM cbfunc add_output enter: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_CB_ADD_OUTPUT_EXIT','SAM cbfunc add_output: sensorUID = 0x%x, algoInstId = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_CB_LOG_SUBMIT_ENTER','SAM cbfunc log_submit enter: sensorUID = 0x%x, algoInstId = 0x%x, logID = 0x%x', 'F'],
+             ['SNS_SAM_ALGO_CB_LOG_SUBMIT_EXIT','SAM cbfunc log_submit exit: sensorUID = 0x%x, algoInstId = 0x%x, logID = 0x%x', 'F'],
+             ['SNS_SAM_DROPPED_IND_MSG','SAM dropped ind message: From sensorUID = 0x%x, queue cnt = 0x%x', 'F'],
+             ['SNS_USMR_EXT_IND_SEND','USMR sending ext ind; msg_id 0x%x, len %d', 'F'],
+             ['SNS_PM_SPARE_BROADCAST','PM notify client on apps suspend [%d]', 'F'],
+             ['SNS_PM_VOTE_IMG_MODE','PM changes img mode to [%d]', 'F'],
+             ['SNS_PM_UIMG_CB','PM micro image callback with [%d]', 'F'],
+             ['SNS_SCM_PROCESS_SMGR_BUFF_ENTER','ENTER sns_scm_process_smgr_buffer with %d samples and %d types, found_type %d', 'F'],
+             ['SNS_SCM_PROCESS_SMGR_BUFF_EXIT','EXIT sns_scm_process_smgr_buffer', 'F'],
+             ['SNS_SCM_PROCESS_SMGR_ITEM_ENTER','ENTER sns_scm_process_smgr_item SensorID = %d', 'F'],
+             ['SNS_SCM_PROCESS_SMGR_ITEM_EXIT','EXIT sns_scm_process_smgr_item SensorID = %d', 'F'],
+             ['SNS_SCM_ALGO_UPDATE_ENTER','ENTER sns_scm_algo_update, serviceId = %d', 'F'],
+             ['SNS_SCM_ALGO_UPDATE_EXIT','EXIT sns_scm_algo_update, serviceId %d', 'F'],
+             ['SNS_SCM_PROCESS_SMGR_IND_ENTER','ENTER sns_scm_process_ind', 'F'],
+             ['SNS_SCM_PROCESS_SMGR_IND_EXIT','EXIT sns_scm_process_ind', 'F'],
+             ['SNS_SCM_TASK_ENTER','ENTER scm main task loop', 'F'],
+             ['SNS_SCM_TASK_EXIT','EXIT scm main task loop', 'F'],
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+PROFILING_SOURCES = [
+      '${BUILDPATH}/sns_profiling.c',
+   ]
+
+PROFILING_UIMG_SOURCES = [
+      '${BUILDPATH}/sns_profiling_uimg.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   PROFILING_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/profiling/src')
+   PROFILING_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/profiling/inc')
+
+   # Add binary library
+   profiling_lib = env.AddBinaryLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/PROFILING", PROFILING_SOURCES)
+   
+   profiling_uimg_lib = env.AddBinaryLibrary(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/PROFILING_UIMG', PROFILING_UIMG_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_QDSP6_SENSOR_SW'], PROFILING_CLEAN_SOURCES)
+else:
+   profiling_obj = env.Object(PROFILING_SOURCES)
+   profiling_lib = env.Library('${BUILDPATH}/PROFILING', profiling_obj)
+   env.AddLibsToImage(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   profiling_lib)
+
+   profiling_uimg_lib = env.AddLibrary(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/PROFILING_UIMG', PROFILING_UIMG_SOURCES)
+
+# clause common to regular build and HD22   
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], profiling_uimg_lib)
+

@@ -1,0 +1,58 @@
+#===============================================================================
+#
+# HAP AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/opendsp.adsp/2.6/integration/audproc/build/hap_audproc.scons#1 $
+#  $DateTime: 2014/04/14 22:08:10 $
+#  $Author: coresvc $
+#  $Change: 5686658 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+core_public_apis = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+env.RequirePublicApi('ADSP_AMDB', area='platform') 
+env.RequireRestrictedApi('HAP')
+env.RequirePublicApi('HAP_AVS')
+env.RequirePublicApi('HAPSDK', area='platform') # This has to be the last include command, so that the Elite_CAPI.h and Elite_APPI.h are not overridden
+
+env.PublishPrivateApi('AVS',[
+   '../build',
+   ])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '..'
+LIBNAME = 'hap_audproc'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+#import pdb; pdb.set_trace()
+env.Tool('custom_appi_integration', toolpath = ['${BUILD_ROOT}/hap/integration/audproc/build'])
+env.CreateStaticAPPIModules()
+env.CreateStaticTopologies()
+hap_sources = env.GlobSourceFiles(['src/*.cpp', 'src/*.c'], SRCPATH,posix=True)
+
+env.AddLibrary(['HAP_AVS_ADSP'], '${BUILDPATH}/'+LIBNAME, hap_sources) 

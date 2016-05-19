@@ -1,0 +1,319 @@
+;============================================================================
+;  Name:
+;    bamanalyze.cmm
+;
+;  Description:
+;    This script helps analyze the state of a BAM and its pipes.
+;
+;============================================================================
+;
+;      Copyright (c) 2012 by Qualcomm Technologies, Inc.  All Rights Reserved.
+;      QUALCOMM Proprietary and Confidential.
+;
+;============================================================================
+; $Header: //components/rel/core.adsp/2.6.1/hwengines/bam/scripts/bamgui.cmm#1 $
+; $DateTime: 2014/10/16 12:45:40 $
+; $Author: pwbldsvc $
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; when       who     what, where, why
+; ---------- ---     --------------------------------------------------------
+; 07/31/2012 mk     Created.
+;============================================================================;
+
+; ==========================================================================
+;
+; Function Main
+;
+; Description: Entry point to the script.  Sets up main dialog window.
+;
+; ==========================================================================
+
+
+;some Globals that get passed around
+LOCAL &BamsList
+LOCAL &Client
+LOCAL &PipeNum
+LOCAL &OutputFileName
+LOCAL &DescFIFO
+;MAIN:
+Main:
+ENTRY &Target &Option  &ARG1 &ARG2 &ARG3  &ARG4; &Target &Client &OutputFileName
+
+&Client=""
+&PipeNum=0xFF
+&OutputFileName=""
+&DescFIFO=""
+; Create an input area
+gosub CreateArea
+
+if ("&Target"=="")
+(
+  PRINT "Need to pass a target"
+  ENDDO
+)
+
+DO &Target\spslistbams.cmm
+ENTRY &BamsList ; Comma separated list
+
+
+wintop bamdlg
+if found()
+    winclear bamdlg
+
+gosub CreateDialog
+;gosub InitDialog 
+stop
+closeDialog:
+   dialog.end
+   GOSUB AnalyzeBam ; Should not return
+ENDDO
+
+
+; ==========================================================================
+;
+; Function CreateArea
+;
+; Description: Sets up the area window used to display output.
+;
+; ==========================================================================
+CreateArea:
+
+Area.Create IO
+Area.Select IO
+Area.Clear IO
+Area IO
+RETURN
+
+
+; ==========================================================================
+;
+; Function CreateDialog
+;
+; Description: Sets up main dialog window used to select all log options.
+;
+; ==========================================================================
+
+CreateDialog:
+winpos ,,,,,, bamdlg
+dialog
+(&
+  ;-----------------------------------------
+  ; Main header/title
+  ;-----------------------------------------
+  header "BAM Analyzer for &BAMMSMID"
+
+  ;-----------------------------------------
+  ; BAM  Chooser 
+  ;-----------------------------------------
+
+  pos 0. 0. 35. 0.
+  line "Select a BAM (Required):"
+
+  pos 1. 1. 15. 1.
+  BAMList.BAM: PULLDOWN "&BamsList" "GOSUB ChooseClient"
+  ;-----------------------------------------
+  ; Pipe  Chooser 
+  ;-----------------------------------------
+
+  pos 0. 2. 35. 0.
+  line "Choose a pipe (Optional) [0-30]:"
+
+  ;pos 0. 2. 22. 1.
+  ;PipeNum.Lbl: TEXT "Select a Pipe (Optional) [0 - 30] :"
+
+  pos 1. 3. 4. 1.
+  PipeNum.Txt: EDIT "FF" "GOSUB ValidatePipeNum"
+  ;------------------------------------------
+  ; Output File Name 
+  ;-----------------------------------------
+
+  pos 0. 4. 35. 0.
+  line "Choose an output file (Optional):"
+
+  pos 1. 5. 15. 1.
+  SelFile: button "Select Output file" "gosub SelectOutput"
+
+  pos 17. 5. 18. 1.
+  OutputFile.Text: EDIT "TBD"  ""
+
+  ;------------------------------------------
+  ; Open Desc FIFO Window
+  ;-----------------------------------------
+
+  pos 0. 6. 35. 0.
+  line "Dump Desc FIFO (Optional):"
+
+  pos 1. 7. 15. 1.
+  descFifoCheckBox: CHECKBOX "Enable DescFIFO" "gosub EnableDescFIFO"
+
+  ;-----------------------------------------
+  ; Analyze button
+  ;-----------------------------------------
+  pos 0. 8. 35. 0.
+  line "" 
+  pos 1. 9. 20. 1.
+  AnalyzeBam.Button: button "Analyze Bam" "jumpto closeDialog"
+)
+
+RETURN
+
+
+ChooseClient:
+  &Client=DIALOG.STRING(BAMList.BAM)
+RETURN
+
+EnableDescFIFO:
+        if dialog.boolean(descFifoCheckBox)
+        (
+           &DescFIFO="descfifo"
+        )
+        else
+        (
+           &DescFIFO=""
+        )
+
+RETURN
+
+; ==========================================================================
+;
+; Function ValidatePipeNum
+;
+; ==========================================================================
+ValidatePipeNum:
+    &temp=DIALOG.STRING(PipeNum.Txt)    
+    if (&temp<0||&temp>30.)
+    (
+       DIALOG.OK "Pipe number must be between 0 and 30"
+       DIALOG.SET PipeNum.Txt "FF"
+       &PipeNum=0xFF
+    )
+    else 
+    (
+       &PipeNum=&temp
+    )
+RETURN
+
+; ==========================================================================
+;
+; Function SelectOutput
+;
+; ==========================================================================
+SelectOutput:
+; Select an output file 
+dialog.filew *.txt
+ENTRY &OutputFileName
+if "&OutputFileName"!=""
+(
+  &outdir=OS.FILE.PATH(&OutputFileName)
+  &outfname=OS.FILE.NAME(&OutputFileName)
+  dialog.set OutputFile.Text "&outfname @ &outdir"
+)
+
+RETURN
+
+; ==========================================================================
+;
+; Function AnalyzeBam
+;
+; ==========================================================================
+AnalyzeBam:
+; Call the BAM Analyzer
+
+; Check if pipe is chosen
+&Option=1 ; BAM 
+if (&PipeNum!=0xFF)
+(
+  &Option=2; Pipe
+)
+if ("&Client"!="")
+(
+ if (&Option==1)
+ (
+   &Option=""
+   if ("&OutputFileName"!="")
+   (
+      &Option="OpFile="+"&OutputFileName"
+   )   
+   if ("&DescFIFO"!="")
+   (
+     &Option="&Option"+" "+"&DescFIFO"
+   ) 
+   ;do bamanalyze.cmm bam &Target &Client OpFile=&OutputFileName &DescFIFO  
+   do bamanalyze.cmm bam &Target &Client &Option
+ )
+ else
+ (
+   do bamanalyze.cmm pipe &Target &Client &PipeNum OpFile=&OutputFileName &DescFIFO
+ )
+)
+RETURN
+
+
+
+PRINTER:
+ENTRY &str
+
+if ("&OutputFileName"!="")
+(
+  if (&first_time==0)
+  (
+    ;Open the output file if need be
+    OPEN #1 &OutputFileName /CREATE
+    &first_time=1
+  )
+  WRITE #1 &str
+  
+  IF ("&str"=="Done")
+  (
+    CLOSE #1
+  )
+)
+else
+(
+  print &str
+)
+RETURN
+
+FORMATSTR:
+ENTRY &str &fillwidth &align 
+
+        &len=STRING.LEN(&str)
+        &padlength=&fillwidth-&len
+        &padhead=0
+        &padtail=0
+        &pad=0
+        IF ("&align"=="CENTER")
+        (
+                &padhead=&padlength/2
+                &padtail=&padlength/2 
+        )
+        ELSE IF ("&align"=="HEAD")
+        (
+                &padhead=&padlength
+                        
+        )
+        ELSE IF (&align=="TAIL")
+        (
+                &padtail=&padlength
+        )
+
+        &fillstr=""
+        ;Head
+        while (&pad<&padhead)
+        (
+                &fillstr="&fillstr "
+                &pad=&pad+1
+        )
+        &fillstr="&fillstr"+&str
+        ;Tail
+        &pad=0
+        while (&pad<&padtail)
+        (
+                &fillstr="&fillstr "
+                &pad=&pad+1
+        )
+        RETURN "&fillstr"
+

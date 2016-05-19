@@ -1,0 +1,87 @@
+//===========================================================================
+//
+// FILE:         slimbus.xml
+//
+// DESCRIPTION:  This file contains the DAL XML properties for the SLIMbus 
+//               Device Access Library.
+//
+//===========================================================================
+//
+//                             Edit History
+//
+// $Header: //components/dev/core.adsp/2.4/mshettel.CORE.ADSP.2.4.slimbus_8994/buses/slimbus/config/slimbus_adsp_8974.xml#1 $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 10/10/14   MJS     Add BAM trust disable property.
+// 06/17/14   MJS     Add TomTom codec enumeration addresses.
+// 01/13/14   MJS     Initial revision for Elessar ADSP.
+//
+//===========================================================================
+//             Copyright (c) 2014 QUALCOMM Incorporated.
+//                    All Rights Reserved.
+//                  QUALCOMM Proprietary/GTDR
+//===========================================================================
+
+<driver name="SlimBus">
+  <global_def>
+    <var_seq name="ee_assign_arr" type=DALPROP_DATA_TYPE_BYTE_SEQ>
+      0x00, 0x01, 0x02, end
+    </var_seq> 
+    <var_seq name="la_map_arr" type=DALPROP_DATA_TYPE_BYTE_SEQ>
+      0xc0, 0x00, 0x00, 0x10, 0x01, 0x17, 0x02,
+      0xc1, 0x00, 0x01, 0x10, 0x01, 0x17, 0x02,
+      0xc2, 0x00, 0x03, 0x10, 0x01, 0x17, 0x02,
+      0xc3, 0x00, 0x04, 0x10, 0x01, 0x17, 0x02,
+      0xc4, 0x00, 0x05, 0x10, 0x01, 0x17, 0x02,
+      0xca, 0x00, 0x00, 0xa0, 0x00, 0x17, 0x02,
+      0xcb, 0x00, 0x01, 0xa0, 0x00, 0x17, 0x02,
+      0xcc, 0x00, 0x00, 0x30, 0x01, 0x17, 0x02,
+      0xcd, 0x00, 0x01, 0x30, 0x01, 0x17, 0x02,
+      end
+    </var_seq> 
+    <var_seq name="tlmm_name_str" type=DALPROP_DATA_TYPE_STRING>TLMM</var_seq>
+    <var_seq name="svs_npa_str" type=DALPROP_DATA_TYPE_STRING>/pmic/client/rail_cx</var_seq>
+  </global_def>
+
+  <device id=DALDEVICEID_SLIMBUS_1>
+    <props name="bsp_data" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+       SlimBusBSP
+    </props>
+
+    <props name="is_master" type=DALPROP_ATTR_TYPE_UINT32>0</props> 
+    <props name="default_clock_gear" type=DALPROP_ATTR_TYPE_UINT32>9</props> 
+
+    <props name="ee_assign" type=DALPROP_ATTR_TYPE_BYTE_SEQ_PTR>
+      ee_assign_arr
+    </props>
+
+    <props name="la_map" type=DALPROP_ATTR_TYPE_BYTE_SEQ_PTR>
+      la_map_arr
+    </props>
+
+    <props name="prog_bam_trust" type=DALPROP_ATTR_TYPE_UINT32>0</props>
+    
+    <props name="tlmm_name" type=DALPROP_ATTR_TYPE_STRING_PTR>tlmm_name_str</props>
+    <props name="tlmm_offset" type=DALPROP_ATTR_TYPE_UINT32>0x12030</props>
+    <props name="tlmm_val" type=DALPROP_ATTR_TYPE_UINT32>0x2</props>
+    
+    <props name="svs_npa" type=DALPROP_ATTR_TYPE_STRING_PTR>svs_npa_str</props>
+
+    /* default log level: 1 */
+    <props name="log_level" type=DALPROP_ATTR_TYPE_UINT32>4</props>
+    /* default log size: 4096 */
+//    <props name="log_size" type=DALPROP_ATTR_TYPE_UINT32>1024</props>
+
+//    <props name="no_tx_queue" type=DALPROP_ATTR_TYPE_UINT32>1</props>
+//    <props name="no_rx_queue" type=DALPROP_ATTR_TYPE_UINT32>1</props>
+//    <props name="no_pause" type=DALPROP_ATTR_TYPE_UINT32>1</props>
+
+    <props name="num_local_ports" type=DALPROP_ATTR_TYPE_UINT32>21</props>
+    <props name="local_port_base" type=DALPROP_ATTR_TYPE_UINT32>0</props>
+    <props name="local_channel_base" type=DALPROP_ATTR_TYPE_UINT32>1</props>
+    <props name="shared_channel_base" type=DALPROP_ATTR_TYPE_UINT32>128</props>
+    <props name="num_local_counters" type=DALPROP_ATTR_TYPE_UINT32>21</props>
+  </device>
+</driver>
+

@@ -1,0 +1,48 @@
+#===============================================================================
+#
+# MPROC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/mproc/glink/build/SConscript#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors 
+#-------------------------------------------------------------------------------
+if not os.environ.get('COMPILER','gcc').startswith('llvm'):
+        env.Append(CFLAGS = "-Werror ")
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('MPROC_GLINK', [
+   "${INC_ROOT}/core/mproc/glink/core/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+env.LoadImageUnits()

@@ -1,0 +1,38 @@
+;============================================================================
+;  Name:
+;    setupBam.cmm
+;
+;  Description:
+;    This script helps to setup the scripts and per menu files in T32.
+;
+;============================================================================
+;
+;      Copyright (c) 2012 by Qualcomm Technologies, Inc.  All Rights Reserved.
+;      QUALCOMM Proprietary and Confidential.
+;
+;============================================================================
+; $Header: //components/rel/core.adsp/2.6.1/hwengines/bam/scripts/bamsetup.cmm#1 $
+; $DateTime: 2014/10/16 12:45:40 $
+; $Author: pwbldsvc $
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; when       who     what, where, why
+; ---------- ---     --------------------------------------------------------
+; 07/31/2012 mk     Created.
+;============================================================================;
+
+
+GLOBAL &BAMMSMID
+GLOBAL &BAMSCRIPTSDIR
+
+ENTRY &MSMID
+
+&BAMMSMID="&MSMID"
+&BAMSCRIPTSDIR=OS.PPD()
+menu.rp bammenu.men
+&PERMEN=OS.PPD()+"\&MSMID\bamio.men"
+menu.rp &PERMEN
+DIALOG.MESSAGE "BAM Tools are added to the menu!"
+ENDDO

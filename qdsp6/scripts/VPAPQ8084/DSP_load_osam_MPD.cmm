@@ -1,0 +1,43 @@
+;****************************************************************
+;    filename: DSP_load_osam.cmm
+;
+; usage:
+;    DSP_load_osam
+; example:
+;    DSP_load_osam
+;****************************************************************
+
+print "DSP guest OS address vritual=0x" &Qube_va_guestos " physical=0x" &Qube_pa_guestos
+print "DSP UserPD1 address vritual=0x" &Qube_va_userpd1 " physical=0x" &Qube_pa_userpd1
+
+mmu.tlb.scan
+mmu.format Blast QURTK_pagetables &Qube_va_guestos--(&Qube_va_guestos+0xffffff) &Qube_pa_guestos
+mmu.on
+mmu.autoscan on
+mmu.tablewalk on
+
+do ./qdsp6/scripts/crashman/DSP_timestamp_check.cmm
+
+; LOAD RTOS AWARENESS MODULE
+TASK.CONFIG .\core\kernel\qurt\install_again\ADSPv5MP\debugger\T32\qurt_model.t32
+MENU.ReProgram .\core\kernel\qurt\install_again\ADSPv5MP\debugger\T32\qurt_model.men
+
+
+; Enable RTOS debug messages
+;ext.debug 1
+
+
+;y.spath.srd + .
+MENU.REPROGRAM .\qdsp6\scripts\apq8084\hwioreg.men
+path . + .\qdsp6\scripts\apq8084
+do hwio.cmm
+
+b.s QURTK_tlb_crash
+b.s QURTK_fatal_error
+b.s QURTK_nonfatal_error
+b.s QURTK_handle_error
+b.s QURTK_handle_nmi
+b.s err_fatal_handler
+
+end
+

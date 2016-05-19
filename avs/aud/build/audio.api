@@ -1,0 +1,132 @@
+#===============================================================================
+#
+# AVS APIs
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env.PublishRestrictedApi('AVS',[
+   '${AVS_ROOT}/aud/algorithms/audproc/common/AudppCmnLib/inc',
+   '${AVS_ROOT}/aud/common/utils/inc',
+   '${AVS_ROOT}/aud/algorithms/utils/audio_cmn_lib/inc',
+   ])
+
+env.PublishRestrictedApi('IEC_61937',[
+   '${AVS_ROOT}/aud/algorithms/utils/IEC61937/inc',
+   ])
+         
+env.PublishRestrictedApi('AAC_COMMON',[
+   '${AVS_ROOT}/aud/algorithms/audencdec/aac/common/CAACDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/aac/common/param/inc',
+   ])
+    
+env.PublishRestrictedApi('AC3_PACKETIZER',[
+   '${AVS_ROOT}/aud/algorithms/utils/ac3/packetizer/CAc3PacketizerLib/inc'
+   ])
+
+env.PublishRestrictedApi('DTSHD_PACKETIZER',[
+   '${AVS_ROOT}/aud/algorithms/utils/dtshd/packetizer/CDtshdPacketizerLib/inc',
+   ])
+   
+env.PublishRestrictedApi('DTS_DOWNMIX',[
+   '${AVS_ROOT}/aud/algorithms/dts/post_processing/DTS_DownMix/DTS_DownMixAppi/inc',
+   ])
+
+env.PublishRestrictedApi('DOLBYPULSE_DECODER',[
+   '${AVS_ROOT}/aud/algorithms/dolby/DolbyPulse/CDolbyPulseDecoderLib/inc',
+   ])
+
+env.PublishRestrictedApi('DOLBYPULSE_MS12_DECODER',[
+   '${AVS_ROOT}/aud/algorithms/dolby/DolbyPulse_ms12/CdolbyHeAAc/inc',
+   ])
+
+env.PublishRestrictedApi('DLB_INTRINSICS',[
+   '${AVS_ROOT}/aud/algorithms/dolby/dolby_mobile/dec/DolbyPulse/common/DlbIntrinsics/inc',
+   ])
+
+env.PublishRestrictedApi('DS1_LICENSE',[
+   '${AVS_ROOT}/aud/algorithms/dolby/ds1_license/inc',
+   ])
+   
+env.PublishRestrictedApi('AUDPROC_RESAMPLER',[   
+   '${AVS_ROOT}/aud/algorithms/audproc/resampler/GenericResamplerAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/resampler/CGenericResamplerLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/resampler/GenericResamplerAppi24SRC/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/resampler/GenericResamplerLib24SRC/inc',
+   '${AVS_ROOT}/aud/services/dynamic_svcs/audio_proc_svc/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/resampler/DynamicResamplerCapiV2/inc',
+   ])   
+
+env.PublishRestrictedApi('AUDPROC_RESAMPLER_APPI_24SRC',[
+   '${AVS_ROOT}/aud/algorithms/audproc/resampler/GenericResamplerAppi24SRC/inc',
+   ])
+
+env.PublishRestrictedApi('AUDPROC_EANS',[   
+   '${AVS_ROOT}/aud/algorithms/audproc/eans/EANSAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/eans/EANSLib/inc',
+   ])   
+  
+env.PublishRestrictedApi('AUDPROC_PBE',[    
+   '${AVS_ROOT}/aud/algorithms/audproc/effects/PBE/PbeAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/effects/PBE/CPBELib/inc',
+   ])       
+   
+env.PublishRestrictedApi('AUDPROC_GAINCONTROL',[    
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/aig/AIGAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/aig/AIGLib/inc', 
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/CLimiter24Lib/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/CDrcLib/inc',   
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/mbdrc/MBDRCAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/mbdrc/CMBDRCLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/mbdrc24bit/MBDRCAppi24bit/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/mbdrc24bit/CMBDRCLib24bit/inc',   
+   ])       
+   
+env.PublishRestrictedApi('AUDPROC_LIMITER',[
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/CLimiter24Lib/inc',
+   ])     
+   
+env.PublishRestrictedApi('AUDPROC_MULTIBANDIIR',[    
+   '${AVS_ROOT}/aud/algorithms/audproc/filter/MultiBandIIRAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/filter/CMultiBandIIRLib/inc',   
+   ])       
+   
+env.PublishRestrictedApi('AUDPROC_SAMPLESLIP',[    
+   '${AVS_ROOT}/aud/algorithms/audproc/ratematching/SampleSlipAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audproc/ratematching/SampleSlipLib/inc',
+   ])       
+      
+env.PublishRestrictedApi('AUDPROC_DRC',[
+   '${AVS_ROOT}/aud/algorithms/audproc/gaincontrol/CDrCLib/inc',
+   ])
+
+env.PublishRestrictedApi('AUDPROC_CHMIXER_APPI',[
+   '${AVS_ROOT}/aud/algorithms/audproc/channelmixer/ChannelMixerAppi/inc',
+   ])
+
+env.PublishRestrictedApi('AUDPROC_DELAY_APPI',[
+   '${AVS_ROOT}/aud/algorithms/audproc/latency/uncompressed/DelayAppi/inc',
+   ])
+
+env.LoadAPIUnits()

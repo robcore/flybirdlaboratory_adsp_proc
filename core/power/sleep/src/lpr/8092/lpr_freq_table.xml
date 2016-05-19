@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Core Frequency list
+
+  Copyright (c) 2014 Qualcomm Technologies Incorporated.
+  All Rights Reserved.
+  Qualcomm Confidential and Proprietary
+
+-->
+
+<LPRFreqDefinition>
+  <Table  ChipID="8092" 
+          ChipVersion="1"
+          CoreFreq="301056, 451584"
+          > 
+  </Table>
+</LPRFreqDefinition>

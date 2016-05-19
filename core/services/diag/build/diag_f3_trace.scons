@@ -1,0 +1,164 @@
+#===============================================================================
+#
+# F3 Trace Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/16/14    sm     Added TISE image support.  Note that 'USES_MSVC' and
+#                    'USES_TISE' are used to specify a subset of files from this
+#                    driver to compile for the Windows (MSVC) compiler.  Please
+#                    do not remove these definitions from this file.
+#10/21/13    ph      OSAL APIs updated use ATS timers.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# This is to remove any -Werror declarations in the environmnent for the MSVC
+# compiler.
+if 'USES_MSVC' in env:
+    env.Replace(CFLAGS="")
+
+#-------------------------------------------------------------------------------
+# SUPPORTED IMAGES
+#-------------------------------------------------------------------------------
+
+DIAG_F3_TRACE_IMAGES = [
+    'CORE_QDSP6_SW',
+]
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/services/diag/f3_trace/src"
+
+env.VariantDir('${BUILDPATH}/f3_trace/src', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Features and Definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Defines for ADSP...
+# We need to determine which are relevant because modem just inherits the
+# important ones -- rhalstea
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES=['DIAG_F3_TRACE_ADSP_PROC'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_TRACE_ON_BY_DEFAULT'])
+
+# TISE requires some additional definitions.
+if 'USES_MSVC' and 'USES_TISE' in env:
+    env.Append(CPPDEFINES=['CUSTOMER_H'])
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#++++++++++++++++++++++++++++++
+# F3 TRACE CORE
+#++++++++++++++++++++++++++++++
+
+DIAG_F3_TRACE_SOURCES =  [
+   '${BUILDPATH}/f3_trace/src/diag_f3_trace.c',
+   '${BUILDPATH}/f3_trace/src/diag_f3_trace_cmd.c',
+]
+
+env.AddLibrary(DIAG_F3_TRACE_IMAGES, '${BUILDPATH}/diag_f3_trace', DIAG_F3_TRACE_SOURCES)
+
+# Adding the required sources to the TISE SCons Image
+if 'USES_TISE' in env:
+    env.AddLibrary(['CORE_TISE_SW'], '${BUILDPATH}/diag_f3_trace_tise', DIAG_F3_TRACE_SOURCES)
+
+if 'USES_RCINIT' in env:
+    env.AddRCInitFunc(
+       DIAG_F3_TRACE_IMAGES,
+       {
+        'sequence_group'     : 'RCINIT_GROUP_1',
+        'init_name'          : 'diag_f3_trace',
+        'init_function'      : 'diag_f3_trace_init',
+        'dependencies'       : ['diag_f3_trace_nvcfg','diag_f3_trace_devcfg'] #must run after configs
+       })
+
+
+#++++++++++++++++++++++++++++++
+# DAL DEVICE CONFIG SUPPORT
+#++++++++++++++++++++++++++++++
+
+if 'USES_DEVCFG' in env:
+    DIAG_F3_TRACE_DEVCFG_SOURCES =  [
+       '${BUILDPATH}/f3_trace/src/diag_f3_trace_devcfg.c',
+    ]
+    env.AddLibrary(DIAG_F3_TRACE_IMAGES,'${BUILDPATH}/diag_f3_trace_devcfg',DIAG_F3_TRACE_DEVCFG_SOURCES)
+
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.AddDevCfgInfo(DEVCFG_IMG,
+    {
+       'soc_xml' : ['${BUILD_ROOT}/core/services/diag/f3_trace/src/diag_f3_trace_devcfg.xml']
+    })
+
+    if 'USES_RCINIT' in env:
+      env.AddRCInitFunc(
+       DIAG_F3_TRACE_IMAGES,
+       {
+        'sequence_group'     : 'RCINIT_GROUP_1',
+        'init_name'          : 'diag_f3_trace_devcfg',
+        'init_function'      : 'diag_f3_trace_devcfg_init',
+        'dependencies'       : ['dalsys',]
+       })
+
+#++++++++++++++++++++++++++++++
+#    NV CONFIG SUPPORT
+#++++++++++++++++++++++++++++++
+
+if 'USES_NV' in env:
+    DIAG_F3_TRACE_NVCFG_SOURCES =  [
+       '${BUILDPATH}/f3_trace/src/diag_f3_trace_nvcfg.c',
+    ]
+    env.AddLibrary(DIAG_F3_TRACE_IMAGES,'${BUILDPATH}/diag_f3_trace_nvcfg',DIAG_F3_TRACE_NVCFG_SOURCES)
+
+    if 'USES_RCINIT' in env:
+      env.AddRCInitFunc(
+       DIAG_F3_TRACE_IMAGES,
+       {
+        'sequence_group'     : 'RCINIT_GROUP_1',
+        'init_name'          : 'diag_f3_trace_nvcfg',
+        'init_function'      : 'diag_f3_trace_nvcfg_init',
+        'dependencies'       : ['diag_f3_trace_devcfg']     #nv config can overwrite devcfg
+       })

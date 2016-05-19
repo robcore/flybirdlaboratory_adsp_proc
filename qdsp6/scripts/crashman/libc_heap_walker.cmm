@@ -1,0 +1,109 @@
+
+local &heap_head
+local &heap_size
+local &heap_end
+local &free_head
+local &size
+local &free_block_num
+local &free_block_size
+local &free_block_max_size
+
+ENTRY &filename
+
+if "&filename"==""
+(
+   &filename="c:\temp\libc_heap_usage.txt"
+)
+
+Area.Create heap
+Area.Select heap
+Area.Clear  heap 
+Area heap
+
+print "result will be in file &filename"
+
+open #1 &filename /create
+
+&heap_head=v.value(heapBase)
+&heap_size=v.value(heapSize)
+&heap_end=v.value(heapLimit)
+;&heap_end=&heap_head+&heap_size-1
+;&heap_end=&heap_end&0xFFF00000
+;&heap_end=&heap_end+0xFFFFF
+
+
+&free_head=v.value(&_Aldata)
+&free_head=data.long(d:(&free_head+4))
+
+&free_block_num=0x0
+&free_block_total_size=0x0
+&free_block_max_size=0x0
+
+repeat
+(
+  if &heap_head>=&heap_end
+  (
+    goto endloop
+  )
+
+  &size=data.long(d:&heap_head)
+
+  if &size==0x0
+  (
+  	dialog.message "Error: size=0 detected at memory &heap_head, libc memory corruption"
+	goto EXIT
+  )
+  
+  if "&heap_head"=="&free_head"
+  (
+     &size=data.long(d:&free_head)
+     &free_block_num=&free_block_num+1
+     &free_block_total_size=&free_block_total_size+&size
+     if &size>&free_block_max_size
+     (
+        &free_block_max_size=&size
+     )
+     ;move to next free block
+     &free_head=data.long(d:(&free_head+4))
+  )
+  else
+  (
+     write #1 "allocated_size &size address &heap_head"
+  )
+
+  &heap_head=&heap_head+&size
+)
+
+endloop:
+
+write #1 " "
+write #1 " "
+;heap_head should be heap_end+1, otherwise there is memory corruption in the heap
+;&heap_end=&heap_end+1
+if "&heap_head"!="&heap_end"
+(
+   dialog.message "Error: free_head=&free_head, heap_end=&heap_end, heap corruption detected !!!!!"
+   goto EXIT
+)
+
+if "&free_head"!="0x0"
+(
+   dialog.message "Error: free_head=&free_head in the end, free list corruption detected !!!!!"
+   goto EXIT
+)
+
+write #1 ";free_head has to 0 in the end, otherwise means free list is corrupted"
+write #1 "heap_head=&heap_head"
+write #1 "free_head=&free_head"
+
+dialog.message "Congratulations: no heap corruption detected"
+
+EXIT:
+
+write #1 " "
+write #1 "number of free blocks: &free_block_num"
+write #1 "total size of free blocks: &free_block_total_size"
+write #1 "max size of free blocks: &free_block_max_size"
+
+close #1
+

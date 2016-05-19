@@ -1,0 +1,87 @@
+#===============================================================================
+#
+# HAP APIs
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/opendsp.adsp/2.6/build/hap.api#1 $
+#  $DateTime: 2014/04/14 22:08:10 $
+#  $Author: coresvc $
+#  $Change: 5686658 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/18/2013         Added the file to HAP Component
+# 05/17/2013         OEM_ROOT dependency removed
+# 07/18/2013		 Added required 'inc' path for HAP component to build
+#===============================================================================
+Import('env')
+import os
+
+#  If OEM_ROOT is set by user from Command Prompt, then it is set in python environment
+#  OEM_ROOT should be set to <Absolute_Path_Till_adsp_proc>\adsp_proc\hap
+if os.environ.get('OEM_ROOT')!=None:
+	env['OEM_ROOT'] = os.environ['OEM_ROOT']
+
+
+# These paths are published as Restricted for HAP Component.
+# These paths are required for examples to be integrated into AVS Component
+# If user wants to access any API include paths from other component, append the path here and import it as Resticted API in respective module scons file
+env.PublishRestrictedApi('HAP',[
+   '${INC_ROOT}/avs/elite/qurt_elite/inc',
+   '${INC_ROOT}/avs/aud/common/audio_cmn_inc',
+   '${INC_ROOT}/avs/aud/algorithms/audproc/common/AppiCmnLib/inc',
+   '${INC_ROOT}/avs/elite/utils/inc',
+   '${INC_ROOT}/avs/api/afe/inc',
+   '${INC_ROOT}/avs/api/audio/inc',
+   '${INC_ROOT}/avs/api/avcs/inc',   
+   '${INC_ROOT}/avs/api/mmutils',
+   '${INC_ROOT}/avs/api/apr',
+   '${INC_ROOT}/avs/api/voice/inc',
+   '${INC_ROOT}/avs/api/cvd',
+   '${INC_ROOT}/avs/api/ultrasound/inc', 
+   '${INC_ROOT}/avs/aud/algorithms/audproc/common/AudppCmnLib/inc',
+   '${INC_ROOT}/avs/aud/algorithms/utils/audio_cmn_lib/inc',
+   '${INC_ROOT}/avs/aud/services/dynamic_svcs/audio_proc_svc/inc',
+   '${INC_ROOT}/avs/aud/services/dynamic_svcs/audio_dec_svc/inc',
+   '${INC_ROOT}/avs/voice/services/voice_common/inc',
+   '${INC_ROOT}/avs/voice/services/voice_common/inc',
+   '${INC_ROOT}/avs/voice/services/voice_timer/inc',
+   '${INC_ROOT}/avs/afe/services/static/inc',
+   '${INC_ROOT}/adsp/platform/inc',
+   '${INC_ROOT}/qdsp6/tp/inc',
+   '${INC_ROOT}',
+   ])
+
+
+# To publish include paths from HAP component to AVS component, they are made public under the tag HAP_AVS
+# HAP_AVS tag is used in AVS to include these paths specified.
+env.PublishPublicApi('HAP_AVS',[
+   '${INC_ROOT}/hap/examples/avs/audproc/Gain/GainAppi/inc',
+   '${INC_ROOT}/hap/examples/avs/audproc/Gain/GainLib/inc',
+   '${INC_ROOT}/hap/examples/avs/audproc/Buf/BufAppi/inc',
+   '${INC_ROOT}/hap/examples/avs/audproc/Buf/BufLib/inc',
+   '${INC_ROOT}/hap/examples/avs/audencdec/sampledecoder/csampledecoderlib/inc', 
+   '${INC_ROOT}/hap/examples/avs/audencdec/sampledecoder/csampledecoderlib/tst', 
+   '${INC_ROOT}/hap/examples/avs/audencdec/sampledecoder/sampledecoderlib/inc', 
+   '${INC_ROOT}/hap/examples/avs/vocproc/CustomFilter/inc',
+   '${INC_ROOT}/hap/examples/avs/vocproc/VoiceDelay/inc',
+   ])
+   
+env.PublishPublicApi('HAP_AVS',[
+   '${INC_ROOT}/hap/integration/audencdec/inc',
+   '${INC_ROOT}/hap/integration/audproc/inc',
+   ])
+
+env.LoadAPIUnits()

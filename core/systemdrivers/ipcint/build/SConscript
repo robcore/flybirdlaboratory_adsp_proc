@@ -1,0 +1,118 @@
+#=============================================================================
+# INTERPROCESSOR INTERRUPT LIBRARY
+#
+# Target:    8974
+# Processor: QDSP6
+#
+#=============================================================================
+# $Header: $
+#=============================================================================
+#                    Copyright 2009 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/ipcint/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'HAL',
+   'DAL',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi("SYSTEMDRIVERS_IPCINT", [
+ 	   "${INC_ROOT}/core/systemdrivers/hal/ipcint/inc"
+ 	])
+ 	 
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+IPCINT_SOURCES = [
+   '${BUILDPATH}/DalIPCInt.c',
+   '${BUILDPATH}/DalIPCIntInfo.c',
+   '${BUILDPATH}/DalIPCIntFwk.c'
+]
+
+#-------------------------------------------------------------------------------
+# Define objets
+#-------------------------------------------------------------------------------
+
+ipcint_objs = env.Object([IPCINT_SOURCES])
+ipcint_lib = env.Library('${BUILDPATH}/DalIPCInt', ipcint_objs)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(
+  ['CORE_SPS',
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'APPSBL_BOOT_IMAGE', 'CORE_GSS'],
+  [ipcint_lib])
+
+#---------------------------------------------------------------------------
+# Invoke Test APP for IPCInt (currently commented out)
+#---------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# RCInit Dependencies
+#-------------------------------------------------------------------------------
+#env.Append(CCFLAGS = " -DIPCINT_SEND_TEST")
+#env.Append(CCFLAGS = " -DIPCINT_RECEIVE_TEST")
+
+#if 'USES_RCINIT' in env:
+#  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+#  env.AddRCInitFunc(       # Code Fragment in TMC: NO
+#  RCINIT_IMG,              # define TMC_RCINIT_INIT_IPCINT_TEST
+#  {
+#    'sequence_group'             : 'RCINIT_GROUP_0',       # required
+#    'init_name'                  : 'IPCInt',              # required
+#    'init_function'              : 'IPCInt_Test',         # required
+#    'dependencies'               : ['dalsys','npa']
+#  })
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/ipcint/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/ipcint/SConscript',
+    exports='env')
+
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8084_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '8974_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '8x26_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '8926_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '8x10_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '9x35_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '8994_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml'],
+      '8996_xml'   : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCIntHB.xml']
+   })

@@ -1,0 +1,34 @@
+#===============================================================================
+#
+# RPM build script
+#
+# GENERAL DESCRIPTION
+#    Build script for ubsp rpm.
+#
+# Copyright (c) 2012-2013 by QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/power/uimage_rpm/build/uimage_rpm.api#1 $
+#
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#
+#===============================================================================
+Import('env')
+
+#env.LoadAPIUnits()
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accessible only within uImage
+#-------------------------------------------------------------------------------
+
+
+env.PublishRestrictedApi('UIMAGE_RPM', [
+   "${BUILD_ROOT}/core/power/uimage_rpm/inc",
+])
+

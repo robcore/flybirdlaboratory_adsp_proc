@@ -1,0 +1,45 @@
+#===============================================================================
+#
+# Buses INC PATHs
+#
+# GENERAL DESCRIPTION
+#    Buses INC PATHs
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/buses/build/buses.api#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/13      VV      Included the uart_lite path
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# These are accessible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('BUSES', [
+  "${INC_ROOT}/core/buses/api/icb",
+  "${INC_ROOT}/core/buses/api/i2c",
+  "${INC_ROOT}/core/buses/api/uart_lite",
+])
+
+
+#--------------------------------------------------------------------------- #
+# Search for additional APIs                                                 #
+#--------------------------------------------------------------------------- #
+env.LoadAPIUnits()
+

@@ -1,0 +1,20 @@
+#include "DDIGPIOInt.h"
+<driver name="GPIOInt">
+<device id=DALDEVICEID_GPIOINT>
+<props name="NUMBER_OF_DIRECT_CONNECT_INTERRUPTS" type=DALPROP_ATTR_TYPE_UINT32>
+6
+</props>
+<props name="PROCESSOR" type=DALPROP_ATTR_TYPE_UINT32>
+GPIOINT_DEVICE_LPA_DSP
+</props> 
+<props name="MAX_GPIOS" type=DALPROP_ATTR_TYPE_UINT32> 
+150
+</props>
+<props name="INTERRUPT_PLATFORM" type=DALPROP_ATTR_TYPE_UINT32> 
+2
+</props>
+<props name="UGPIOINT_DRIVER" type=DALPROP_ATTR_TYPE_UINT32> 
+1
+</props>
+</device>
+</driver>

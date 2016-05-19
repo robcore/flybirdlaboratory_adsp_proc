@@ -1,0 +1,143 @@
+#===============================================================================
+#
+# System Monitor Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/debugtools/sys_m/main/latest/default/build/sys_m.scons#1 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/18/14   din     Added changes for ADSP island mode.
+# 05/06/09   wd      Create
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+# HARDCODE TO ${platform}, TMS TEAM CONFIGURES PER DELIVERABLE
+# CONFIGURATION
+
+platform = 'lpass'
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/debugtools/sys_m/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'TMS',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'HAL',
+   'MPROC',
+   'POWER',    # added to include sleep apis for ADSP island mode
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',   # needs to be last also contains wrong comdef.h
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#Target independent system monitor sources
+
+SYS_M_SOURCES = [
+   '${BUILDPATH}/sys_m_common.c',
+   '${BUILDPATH}/sys_m_' + platform + '.c',
+   '${BUILDPATH}/sys_m_smsm_' + platform + '.c'
+]
+
+USYS_M_SOURCES = [
+    '${BUILDPATH}/sys_m_' + platform + '.c'
+]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+#RCINIT_IMG = [
+# 'CORE_QDSP6_SW', 'CORE_MODEM', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_SINGLE_IMAGE',
+# 'CORE_APPS', 'CORE_SINGLE', 'CORE_SPS', 'CORE_GSS', 'CORE_WCN'
+#]
+
+RCINIT_IMG = [ 'CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS' ]
+
+#-------------------------------------------------------------------------------
+island_section = ['.text.uSysm']
+
+sys_m_libs = env.AddLibrary(RCINIT_IMG, '${BUILDPATH}/sys_m', SYS_M_SOURCES)
+
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SW'], sys_m_libs, island_section )
+   env.Append(CFLAGS = "-DSYS_M_ISLAND_MODE ") 
+
+#-------------------------------------------------------------------------------
+# RCINIT Framework
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+
+   env.AddRCInitFunc(
+            RCINIT_IMG,
+            {
+                'sequence_group'            : 'RCINIT_GROUP_0',
+                'init_name'                 : 'sys_m_smsm_init',
+                'init_function'             : 'sys_m_smsm_init',
+                'dependencies'              : ['smp2p']
+            }
+        )
+
+   env.AddRCInitTask(
+            RCINIT_IMG,
+            {
+                'sequence_group'             : 'RCINIT_GROUP_0',
+                'thread_name'                : 'sys_m',
+                'stack_size_bytes'           : '4096',
+                'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+                'thread_type'                : 'RCINIT_TASK_DALTASK'
+            }
+        )
+
+   env.AddRCInitTask(
+            RCINIT_IMG,
+            {
+                'sequence_group'             : 'RCINIT_GROUP_0',
+                'thread_name'                : 'sys_m_smsm',
+                'stack_size_bytes'           : '4096',
+                'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+                'thread_type'                : 'RCINIT_TASK_DALTASK'
+            }
+        )
+
+   env.AddRCInitFunc(
+            RCINIT_IMG,
+            {
+                'sequence_group'            : 'RCINIT_GROUP_1',
+                'init_name'                 : 'sys_m_init',
+                'init_function'             : 'sys_m_init'
+            }
+        )

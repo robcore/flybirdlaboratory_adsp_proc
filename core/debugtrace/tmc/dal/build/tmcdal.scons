@@ -1,0 +1,68 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-TMC Library.
+#
+# Copyright (c) 2011-2012 Qualcomm Technologies Incorporated.
+# All rights reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+env.RequirePublicApi(['HAL','DAL','DEBUGTRACE','SERVICES','SYSTEMDRIVERS'])
+env.RequireRestrictedApi(['DEBUGTRACE'])
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+if env['MSM_ID'] in ['8960']:
+  config='8960'
+elif env['MSM_ID'] in ['8064']:
+  config='8064'
+else:
+  config='8974'                     #default config
+  if env['MSM_ID'] in ['8974','9x35']:     #placeholder - add to this list when we add a config for new targets
+    config=env['MSM_ID']
+
+
+env.PublishPrivateApi('DEBUGTRACE_TARGET_API', [
+   "${INC_ROOT}/core/debugtrace/tmc/config/" + config,
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TMC_DAL_SRC = [
+   '${BUILDPATH}/DalTMC.c',
+]
+
+env.AddLibrary(['RPM_IMAGE','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_GSS','MODEM_IMAGE',
+   'CORE_QDSP6_SW','APPS_PROC','VENUS_VSS'],
+   '${BUILDPATH}/tmc_dal',TMC_DAL_SRC)
+
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8974/daltmc.xml'],
+      '8994_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8994/daltmc.xml'],
+      '9x25_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/9x25/daltmc.xml'],
+      '8x26_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8974/daltmc.xml'],
+      '8x10_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8974/daltmc.xml'],
+      '8092_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8974/daltmc.xml'],
+      '8084_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8974/daltmc.xml'],
+      '9x35_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/9x35/daltmc.xml'],
+      '8962_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/8974/daltmc.xml']	  
+   })

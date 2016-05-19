@@ -1,0 +1,122 @@
+#===============================================================================
+#
+# OSAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/msm7x30/main/latest/boot/appsproc/build/msm7x30.sconscript#3 $
+#  $DateTime: 2009/07/19 21:27:25 $
+#  $Author: wduembeg $
+#  $Change: 971778 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/16/14    sm     Added TISE image support.  Note that 'USES_MSVC' and
+#                    'USES_TISE' are used to specify a subset of files from this
+#                    driver to compile for the Windows (MSVC) compiler.  Please
+#                    do not remove these definitions from this file.
+#10/21/13    ph      OSAL APIs updated use ATS timers.
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+# This is to remove any -Werror declarations in the environmnent for the MSVC
+# compiler.
+if 'USES_MSVC' in env:
+    env.Replace(CFLAGS= '-Dinline="__inline"')
+    env.Append(CPPDEFINES = [
+    'CUST_H=custaaaaaaaaq.h',
+    '__FILENAME__=__FILE__',
+    ])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/services/osal/qurt/src"
+ 
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'DEBUGTOOLS',
+   'DAL',
+   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+OSAL_SOURCES = [
+   '${BUILDPATH}/osal_qurt.c',
+]
+
+OSAL_QDSP_SOURCES = [
+   '${BUILDPATH}/osal_qurt.c',
+]
+
+osal_obj = env.Object(OSAL_SOURCES)
+osal_lib = env.Library('${BUILDPATH}/osal', osal_obj)
+
+osal_obj_qdsp6 = env.Object(OSAL_QDSP_SOURCES)
+osal_lib_qdsp6 = env.Library('${BUILDPATH}/osal_qdsp6', osal_obj_qdsp6)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(
+   ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 
+    'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'APPS_IMAGE', 'CBSP_APPS_IMAGE', 
+    'WCN_IMAGE', 'CORE_GSS',
+	'CORE_QDSP6_SENSOR_SW', 'CORE_QDSP6_AUDIO_SW'],
+    osal_lib)
+   
+env.AddLibsToImage(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE','CORE_QDSP6_SENSOR_SW', 'CORE_QDSP6_AUDIO_SW'],
+   osal_lib_qdsp6)
+
+# Adding the required sources to the TISE SCons Image   
+if 'USES_TISE' in env:
+    env.AddLibrary(['CORE_TISE_SW'], '${BUILDPATH}/osal_tise', OSAL_SOURCES)
+    
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_OSAL_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',           # required
+  'init_name'                  : 'osal',                     # required
+  'init_function'              : 'osal_init',             # required
+}
+    
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   # SMD INIT
+   env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_OSAL_INIT )

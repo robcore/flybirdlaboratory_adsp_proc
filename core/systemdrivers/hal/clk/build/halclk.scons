@@ -1,0 +1,96 @@
+#===============================================================================
+#
+# HAL CLK LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/mpss/dev/dcfellow.clkstuff/modem_proc/core/systemdrivers/hal/clk/build/halclk.scons#1 $
+#  $DateTime: 2011/11/29 10:45:49 $
+#  $Author: coresvc $
+#  $Change: 2066530 $
+#
+#===============================================================================
+
+import os
+Import('env')
+
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+HAL_CLK_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi("SYSTEMDRIVERS_HAL_CLK_COMMON", [
+  HAL_CLK_BUILD_ROOT + "/../inc",
+  HAL_CLK_BUILD_ROOT + "/../src",
+  HAL_CLK_BUILD_ROOT + "/../hw/v1",
+])
+
+#-------------------------------------------------------------------------------
+# Sources: HALClock Library Creation
+#-------------------------------------------------------------------------------
+
+
+env.AddLibrary(
+   ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+   '${BUILDPATH}/HALclk', 
+   [ '${BUILDPATH}/src/HALclk.c' ])
+
+env.AddLibrary(
+   ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+   '${BUILDPATH}/HALclk_hw_v1', 
+   [ '${BUILDPATH}/hw/v1/HALclkGeneric.c',
+     '${BUILDPATH}/hw/v1/HALclkGenericPLL.c',
+     '${BUILDPATH}/hw/v1/HALclkSRPLL.c',
+     '${BUILDPATH}/hw/v1/HALclkPriusPLL.c' ])
+
+#-------------------------------------------------------------------------------
+# Invoke chipset build file
+#-------------------------------------------------------------------------------
+
+if 'mdm9x35' in env['CHIPSET']:
+    env.SConscript('../hw/lpass_v2/build/halclk_hw.scons', exports='env')
+if 'msm8994' in env['CHIPSET']:
+    env.SConscript('../hw/msm8994/build/halclk_hw.scons', exports='env')
+if 'msm8x10' in env['CHIPSET']:
+    env.SConscript('../hw/lpass_v1/build/halclk_hw.scons', exports='env')
+if 'apq8084' in env['CHIPSET']:
+    env.SConscript('../hw/lpass/build/halclk_hw.scons', exports='env')
+if 'msm8974' in env['CHIPSET']:
+    env.SConscript('../hw/lpass/build/halclk_hw.scons', exports='env')
+if 'msm8x26' in env['CHIPSET']:
+    env.SConscript('../hw/lpass/build/halclk_hw.scons', exports='env')
+if 'msm8996' in env['CHIPSET']:
+    env.SConscript('../hw/msm8996/build/halclk_hw.scons', exports='env')
+
+

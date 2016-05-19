@@ -1,0 +1,64 @@
+//============================================================================
+//  Name:                                                                     
+//    std_cti_adsp_wrapper.cmm 
+//
+//  Description:                                                              
+//    Wakes processor by sending CTI pulse
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 05/22/2014 jbilling	    Created as wrapper for std_cti_adsp
+// 05/22/2014 jbilling	    Added further functionality for new s/w driver. renamed
+// 05/09/2014 jbilling      Initial creation
+//
+//  Usage:
+//      do std_cti_adsp_wrapper <Subroutine>
+//
+//  Dependencies
+//  This script is expected to be run from within context of metabuild scripts with std_cti_adsp within the T32 PATH
+//
+//####################Declarations#######################
+LOCAL &ArgumentLine
+LOCAL &UTILITY &OPTION &IARG0 &IARG1 &IARG2 &IARG3 &IARG4 &IARG5 &IARG6 &IARG7 &IARG8 &IARG9 &IARG10 &IARG11
+//###################Arguments passed #####################
+ENTRY %LINE &ArgumentLine
+ENTRY &UTILITY &OPTION &IARG0 &IARG1 &IARG2 &IARG3 &IARG4 &IARG5 &IARG6 &IARG7 &IARG8 &IARG9 &IARG10 &IARG11
+
+
+
+//##################Get configurations for this target###############//
+LOCAL &image 
+&image="adsp"
+
+
+        
+//#####################Select Subroutine###################
+
+	IF (FILE.EXIST("&METASCRIPTSDIR/adsp/std_cti_adsp.cmm"))
+	(
+		DO std_utils EXECUTESCRIPT EXIT &METASCRIPTSDIR/adsp/std_cti_adsp &ArgumentLine
+		GOTO EXIT
+  	)
+	ELSE
+	(
+		PRINT %ERROR "ERROR! Could not find std_cti_adsp in metabuild directory"
+		GOTO FATALEXIT
+	)
+
+GOTO EXIT    
+        
+EXIT:
+    ENDDO &SUCCESS
+    
+FATALEXIT:
+    END
+   

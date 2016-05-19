@@ -1,0 +1,87 @@
+#===============================================================================
+#
+# TASK
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/debugtools/task/main/latest/default/build/task.scons#5 $
+#
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+env.VariantDir('${BUILDPATH}', "${BUILD_ROOT}/core/debugtools/task/src", duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+# NULL
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',   # needs to be last also contains wrong comdef.h
+]
+
+env.RequirePublicApi(CBSP_API)
+#env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#if kernel does not provide dal: if not 'USES_DAL' in env:
+#problem
+
+#if err provides its own context:
+#env.Append(CPPDEFINES=['COREMAIN_EXCLUDE_ERR_MAIN'])
+
+#if images wants to exclude rex: if not 'USES_REX' in env:
+env.Append(CPPDEFINES=['COREMAIN_EXCLUDE_KERNEL_REX_INIT'])
+
+#if image wants to own "main": # image calls coremain_main to init cbsp
+#env.Append(CPPDEFINES=['COREMAIN_EXCLUDE_MAIN'])
+
+TASK_SOURCES = []
+
+#if 'USES_TASK_COREMAIN' in env:
+TASK_SOURCES += [ '${BUILDPATH}/coremain.c', ]
+
+if 'USES_TASK_MOBILE' in env:
+ TASK_SOURCES += [ '${BUILDPATH}/mobile.c', ]
+
+#-------------------------------------------------------------------------------
+# Multi PD Specific Changes
+#-------------------------------------------------------------------------------
+  
+if 'USES_QURTOS_IMG' in env:  # this uses flag is defined only for multi pd flavor and only while building the guest OS (a.k.a kernel PD)
+    env.Append(CPPDEFINES="GUEST_OS_MULTI_PD_FLAVOR")
+    if 'AUDIO_IN_USERPD' in env:   #This is for future builds if Audio PD comes into picture
+      env.Append(CPPDEFINES="SPAWN_AUDIO_USERPD")
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+TASK_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_APPS', 'CORE_GSS', 'CORE_WCN', 'MODEM_MODEM','CORE_QDSP6_SENSOR_SW','CORE_QDSP6_AUDIO_SW' ]
+
+env.AddLibrary(TASK_IMG, '${BUILDPATH}/task', TASK_SOURCES)

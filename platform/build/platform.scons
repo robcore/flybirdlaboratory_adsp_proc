@@ -1,0 +1,22 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+env.Append(HEXAGON_WARN = " -Werror")
+
+env.LoadSoftwareUnits()
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*txt', '*.html'], '${ADSP_PLATFORM_ROOT}/qaic'))
+CLEAN_LIST.extend(env.FindFiles('*', '${ADSP_PLATFORM_ROOT}/qaic/Linux_DoNotShip'))
+CLEAN_LIST.extend(env.FindFiles('*', '${ADSP_PLATFORM_ROOT}/tools'))
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/pls'))
+CLEAN_LIST.extend(env.FindFiles(['dynsymbols.lst', 'externs.lst'], '${ADSP_PLATFORM_ROOT}/exports'))
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/pls'))
+
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

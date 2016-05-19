@@ -1,0 +1,29 @@
+#===============================================================================
+#
+# HAP AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/opendsp.adsp/2.6/examples/avs/build/avs.scons#1 $
+#  $DateTime: 2014/04/14 22:08:10 $
+#  $Author: coresvc $
+#  $Change: 5686658 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env.LoadSoftwareUnits()

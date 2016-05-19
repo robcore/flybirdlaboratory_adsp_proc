@@ -1,0 +1,51 @@
+#===============================================================================
+#
+# AVS APIs
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/avs.adsp/2.6.1/elite/module_interfaces/shared_lib_api/build/SharedLibApi.api#3 $
+#  $DateTime: 2014/12/26 03:33:20 $
+#  $Author: svutukur $
+#  $Change: 7198050 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env.PublishRestrictedApi('SHARED_LIBRARY_API',[
+   '${AVS_ROOT}/elite/module_interfaces/shared_lib_api/inc'
+   ])
+   
+env.PublishRestrictedApi('SHARED_LIBRARY_INC_PATHS',[
+   '${AVS_ROOT}/elite/module_interfaces/shared_lib_api/inc',
+   '${AVS_ROOT}/elite/qurt_elite/inc',
+   '${AVS_ROOT}/adsp_license_db/inc',
+   '${AVS_ROOT}/api/afe/inc',
+   '${AVS_ROOT}/api/audio/inc',
+   '${AVS_ROOT}/api/avcs/inc',
+   '${AVS_ROOT}/api/mmutils', 
+   '${AVS_ROOT}/api/apr',
+   '${AVS_ROOT}/api/voice/inc', 
+   '${AVS_ROOT}/api/cvd',
+   '${AVS_ROOT}/api/ultrasound/inc', 
+   '${AVS_ROOT}/api/listen/inc',
+   '${AVS_ROOT}/aud/algorithms/utils/audio_cmn_lib/inc',
+   '${AVS_ROOT}/elite/module_interfaces/api/inc',
+   ]
+);
+
+env.LoadAPIUnits()

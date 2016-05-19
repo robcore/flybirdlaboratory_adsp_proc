@@ -1,0 +1,235 @@
+#===============================================================================
+#
+# ERR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/mpss/rel/1.0/modem_proc/core/debugtools/err/build/err.scons#1 $
+#  $DateTime: 2011/07/12 11:42:57 $
+#  $Author: cbirch $
+#  $Change: 1831834 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/27/14   din     Updated to support Audio PD.
+# 04/18/14   din     Added changes for ADSP island mode.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/debugtools/err/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Features and Definitions
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES=['FEATURE_ERR_SERVICES'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_DEBUG_TRACE'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_TRACE_ON_BY_DEFAULT'])
+
+env.Append(CPPDEFINES=['ERR_IMG_ADSP'])
+env.Append(CPPDEFINES=['ERR_HW_QDSP6'])
+env.Append(CPPDEFINES=['ERR_CFG_QURT'])
+env.PublishPrivateApi("ERR", [
+   "${INC_ROOT}/core/debugtools/err/src/q6"
+])
+
+if 'USES_DEVCFG' in env:
+    env.Append(CPPDEFINES=['ERR_USES_DEVCFG'])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+ERR_ADSP_SOURCES =  [
+    '${BUILDPATH}/err.c',
+    '${BUILDPATH}/err_exception_handler.c',
+    '${BUILDPATH}/errlog.c',
+    '${BUILDPATH}/err_exception_task.c',
+    '${BUILDPATH}/err_qdi.c',
+    ]
+
+#Source meant for Uerr, Should be explicitly added for island mode
+UERR_ADSP_FULL_SOURCES = [
+   '${BUILDPATH}/uerr_exception_handler.c',
+   '${BUILDPATH}/uerr_exception_task.c',
+   '${BUILDPATH}/err_jettison_core.S',
+   ]
+
+ERR_LPASS_SOURCES = [
+   '${BUILDPATH}/err_pd.c',
+   '${BUILDPATH}/err_pd_exception_handler.c',
+   '${BUILDPATH}/err_pd_exception_task.c',
+   '${BUILDPATH}/err_jettison_core.S',
+   '${BUILDPATH}/err_qdi_client.c',
+   ]
+
+ERR_DSPS_SOURCES = [
+   '${BUILDPATH}/err_pd.c',
+   '${BUILDPATH}/err_pd_exception_handler.c',
+   '${BUILDPATH}/err_pd_exception_task.c',
+   '${BUILDPATH}/err_qdi_client.c',
+   ]
+
+#Source meant for Uerr, Should be explicitly added for island mode
+UERR_DSPS_FULL_SOURCES = [
+   '${BUILDPATH}/err_jettison_core.S',
+   ]
+
+if 'USES_ISLAND' not in env:
+   ERR_ADSP_SOURCES.append('${BUILDPATH}/err_jettison_core.S')
+   ERR_DSPS_SOURCES.append('${BUILDPATH}/err_jettison_core.S')
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Add ADSP sources
+#-------------------------------------------------------------------------------
+ERR_IMGS = [
+    'CORE_QDSP6_SW'
+]
+
+island_section = ['.text.uErr','.data.uErr']
+
+err_adsp_full_libs = env.AddLibrary( ERR_IMGS, '${BUILDPATH}/err', ERR_ADSP_SOURCES )
+
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(ERR_IMGS, err_adsp_full_libs, island_section )
+   uerr_adsp_full_libs = env.AddLibrary(ERR_IMGS,'${BUILDPATH}/uerr', UERR_ADSP_FULL_SOURCES)
+   env.AddIslandLibrary(ERR_IMGS, uerr_adsp_full_libs )
+   env.Append(CFLAGS = "-DUERR_ISLAND_MODE ")
+
+
+# Register initializations with rcinit
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(  
+    ERR_IMGS,            
+    {
+     'sequence_group'             : 'RCINIT_GROUP_1',                   # required
+     'init_name'                  : 'err_init',                         # required
+     'init_function'              : 'err_init',                         # required
+     #'dependencies'               : ['',]
+    })
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(  
+    ERR_IMGS,            
+    {
+     'sequence_group'             : 'RCINIT_GROUP_1',                   # required
+     'init_name'                  : 'err_qdi_init',                     # required
+     'init_function'              : 'err_qdi_init',                     # required
+     'dependencies'               : ['err_init',]
+    })
+	
+
+#-------------------------------------------------------------------------------
+# Add DSPS sources
+#-------------------------------------------------------------------------------
+if 'USES_SENSOR_IMG' in env: 
+   ERR_IMGS = [
+       'CORE_QDSP6_SENSOR_SW'
+   ]
+   err_dsps_full_libs = env.AddLibrary(ERR_IMGS,
+   '${BUILDPATH}/err', ERR_DSPS_SOURCES )
+
+   if 'USES_ISLAND' in env:
+     env.AddIslandLibrary(ERR_IMGS, err_dsps_full_libs, island_section )
+     uerr_dsps_full_libs = env.AddLibrary(ERR_IMGS,'${BUILDPATH}/uerr', UERR_DSPS_FULL_SOURCES)
+     env.AddIslandLibrary(ERR_IMGS, uerr_dsps_full_libs )
+     env.Append(CFLAGS = "-DUERR_ISLAND_MODE ")
+
+   # Register initializations with rcinit
+   RCINIT_INIT_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+     'init_name'                  : 'err_init',                        # required
+     'init_function'              : 'err_init',                        # required
+   }
+
+   RCINIT_INIT_INIT_QDI = {
+     'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+     'init_name'                  : 'err_qdi_client_init',             # required
+     'init_function'              : 'err_qdi_client_init',             # required
+     'dependencies'               : ['err_init',]
+   }
+
+   if 'USES_RCINIT' in env:
+      env.AddRCInitFunc( ERR_IMGS, RCINIT_INIT_INIT )
+      env.AddRCInitFunc( ERR_IMGS, RCINIT_INIT_INIT_QDI )
+
+
+#-------------------------------------------------------------------------------
+# Add LPASS sources
+#-------------------------------------------------------------------------------
+#uImage is not enabled for LPASS 
+if 'USES_AUDIO_IMG' in env: 
+   ERR_IMGS = [
+       'CORE_QDSP6_AUDIO_SW'
+   ]
+   env.AddLibrary(ERR_IMGS,
+   '${BUILDPATH}/err', ERR_LPASS_SOURCES )
+
+   # Register initializations with rcinit
+   RCINIT_INIT_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+     'init_name'                  : 'err_init',                        # required
+     'init_function'              : 'err_init',                        # required
+   }
+
+   RCINIT_INIT_INIT_QDI = {
+     'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+     'init_name'                  : 'err_qdi_client_init',             # required
+     'init_function'              : 'err_qdi_client_init',             # required
+     'dependencies'               : ['err_init',]
+   }
+
+   if 'USES_RCINIT' in env:
+      env.AddRCInitFunc( ERR_IMGS, RCINIT_INIT_INIT )
+      env.AddRCInitFunc( ERR_IMGS, RCINIT_INIT_INIT_QDI) 

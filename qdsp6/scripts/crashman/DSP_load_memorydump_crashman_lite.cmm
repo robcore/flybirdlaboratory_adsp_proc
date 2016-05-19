@@ -1,0 +1,175 @@
+;****************************************************************
+;Filename : DSP_load_memorydump_crashman.cmm
+;****************************************************************
+
+ENTRY &Target_Name &UniqueNumber &ramdumpfile &OutputPath &ADSP_BUILDROOT &CurrentDirectory &Customer_Elf_Path &smmu_enable
+
+global &ramdumpstartadd
+global &choice
+global &CurrentDirectory
+global &ADSP_BUILDROOT
+global &Target_Name
+
+
+area.close
+winclear
+reset
+
+area.create Crashman
+area.open Crashman &OutputPath\areainfo.txt
+WINPOS 0% 0. 50% 103% 0. 0. Crashman
+area.view Crashman 
+area.select Crashman
+
+sys.u
+
+print "##########################################################################################################################"
+print "############                Crashman Process logs                                                             ############"
+print "##########################################################################################################################"
+print 
+print 
+
+OPEN #1 "&OutputPath\version_check.txt" /READ
+READ #1 %line &Python_version
+READ #1 %line &Perl_version
+READ #1 %line &Crashman_version
+print "&Crashman_version"
+print "&Python_version "
+print "&Perl_version"
+print 
+
+version_start:
+read #1 %line &linelst 
+&Endstring=string.mid("&linelst", 0, 0xe)
+if "&Endstring"=="VersionFileEnd"
+(
+    goto version_done_reading
+)
+print %ERROR "&linelst"
+goto version_start
+version_done_reading:
+
+CLOSE #1 
+
+
+
+print "Dump file Provided   :   &ramdumpfile "
+print "ADSP build Provided  :   &ADSP_BUILDROOT "
+print "Elf path provided    :   &Customer_Elf_Path"
+print "Target Name Provided :   &Target_Name"
+print "Output Folder        :   &OutputPath"
+print 
+
+OPEN #1 "&OutputPath\binarylength.txt" /READ
+READ #1 %line &BinaryLength
+CLOSE #1 
+
+OPEN #1 "&OutputPath\adspstartaddr.txt" /READ
+READ #1 %line &adspstartadd 
+CLOSE #1
+
+if (&BinaryLength>52428800)
+(
+    &ramdumpstartadd=0x00000000
+)
+else 
+(
+    &ramdumpstartadd=&adspstartadd
+)
+print "##########################"
+print "ADSP Start Address: &adspstartadd"
+if (&adspstartadd==0)
+(
+    print " Only LPASS dumps detected "
+    print "PLEASE ENTERT ADSP image START ADDRESS: (eg: 0x00000000)" 
+    print " "
+    print " "
+    print " "
+    print " "
+    enter &adspstartadd 
+) 
+
+OPEN #1 "&OutputPath\dumpformant.txt" /READ
+READ #1 %line &choice 
+CLOSE #1
+
+&cmd1 = "cd &CurrentDirectory"
+OS.Hidden &cmd1
+do DSP_connect_memdump_MPD.cmm &ramdumpfile &UniqueNumber &ramdumpstartadd &adspstartadd &OutputPath &ADSP_BUILDROOT &Target_Name &CurrentDirectory &Customer_Elf_Path
+
+;;;Cache Flush Check
+var.new \QURTK_flush_cache_status_var
+var.set \QURTK_flush_cache_status_var=QURTK_flush_cache_status
+
+printer.file &OutputPath\flush_cache.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.d.dump QURTK_flush_cache_status
+
+&command="perl &CurrentDirectory\CacheFlush.pl &OutputPath"
+OS.Hidden &command
+
+&FlushFlag=v.value(\QURTK_flush_cache_status_var)
+if (&FlushFlag==1)
+(
+)
+else if (&FlushFlag==2)
+(
+    print "cache is flushed except the following information: L2VIC interrupt table and TCM dump are not flushed"
+    ;dialog.message "cache is flushed except the following information: L2VIC interrupt table and TCM dump are not flushed"
+)
+else if (&FlushFlag==3)
+(
+    print "Receive External NMI (watchdog) while handling a FATAL exception"
+    ;dialog.message "Receive External NMI (watchdog) while handling a FATAL exception"
+)
+else
+(
+    print %ERROR "Dumps provided are not Cache Flushed - Level2 of validating Dumps Failed with QURTK_flush_cache_status:&FlushFlag"
+    dialog.message "Dumps provided are not Cache Flushed - Level2 of validating Dumps Failed"
+)
+;Updated Cache status in to a seperate file for DSPAnalysis python file
+printer.file &OutputPath\flush_cache_py.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.v.v QURTK_flush_cache_status
+OPEN #1 "&OutputPath\flush_cache_py.txt" /WRITE
+WRITE #1 &FlushFlag
+CLOSE #1 
+
+if ("&Target_Name"=="8994")
+(
+)
+else if ("&Target_Name"=="8992")
+(
+)
+else if ("&Target_Name"=="8952")
+(
+)
+else
+(
+    cd &CurrentDirectory
+    area.select Crashman
+    print "Processing analy_qurt_error.cmm Script"
+    printer.file &OutputPath\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    do analy_qurt_error.cmm
+    WINClear TOP
+    area.select Crashman
+    print "Processing analy_qurt_error.cmm Script.Done"
+    do DSP_load_pagetables.cmm &OutputPath
+    print "Loaded page tables"
+    printer.file &OutputPath\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+)
+area.select Crashman
+print "##########################"
+print "Loading Dumps. Done"
+printer.file &OutputPath\Crashman_Log.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area.view Crashman

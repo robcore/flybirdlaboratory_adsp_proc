@@ -1,0 +1,155 @@
+#===============================================================================
+#
+# Basic skeleton image scrip
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/wlan_libs/build/wlan_libs.scons#5 $
+#  $DateTime: 2014/11/12 19:31:01 $
+#  $Change: 6945721 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should 
+# never be two images with the same unique name 
+aliases = ['wlan_libs', 'adsp_proc', 'adsp_images', 'adsp_mpd_images', 'adsp_core_images', 'adsp_mpd_core_images',
+              'msm8992_MPD', 'msm8994_MPD', 'msm8996_MPD'
+          ]
+
+if 'USES_DISABLE_WLAN' in env or 'BUILD_BAREBONE' in env or not env.PathExists("${BUILD_ROOT}/wlan"):
+   print "USES_DISABLE_WLAN/BUILD_BAREBONE/no wlan folder, bypass WLAN wlan_libs.scons compilation"
+   Return()
+   
+#------------------------------------------------------------------------------
+# Init environment variables
+
+build_tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py']
+
+#------------------------------------------------------------------------------
+# Init environment variables
+env.InitImageVars(
+   alias_list=aliases,  # aliases list
+   proc='qdsp6',      # proc (depending on tool chain arm, hexago, etc)
+   config='adsp',
+   plat='qurt',           # platform (l4, blast, foo, bar, etc)
+#build_tags = ['BASIC_IMAGE_EXAMPLE'],
+   build_tags = ['CORE_QDSP6_SW', 'WLAN_ADSP'],
+   tools = build_tools
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+env.PrintInfo("wlan libs")
+#---------------------------------------------------------------------------
+# Load in the tools-set init scripts
+#---------------------------------------------------------------------------
+
+#Add ADSP Image specific linker inputs here
+env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build'])
+
+
+if 'USES_MALLOC_WRAPPER_ENABLED' in env:
+    env.Append(CFLAGS='-DMALLOC_WRAPPER ')
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load wlan libs/objs build rules.
+if env.PathExists("${BUILD_ROOT}/wlan"):
+   au_items = env.LoadAreaSoftwareUnits('wlan')
+   image_libs.extend(au_items['LIBS'])
+   image_objs.extend(au_items['OBJS'])
+
+image_units = [image_objs, image_libs]
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+   
+   image_units += local_itmes
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+
+   # this is where the rule to "link" is done.
+   #image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs, LIBS=image_libs)
+   
+   # this is just to create something for testing
+   if [image_objs,image_libs] != 0:
+      image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [image_objs, image_libs], 
+         add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+   else:
+      image_elf=[]
+   
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

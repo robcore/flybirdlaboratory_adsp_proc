@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# Bam Libs
+#
+# GENERAL DESCRIPTION
+#    BAM Libs build script
+#
+# Copyright (c) 2011-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/13/11   MK      Created
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Debug scripts
+#-------------------------------------------------------------------------------
+try:
+    BAMSCRIPTSPATH = env.subst('${BUILD_ROOT}/core/hwengines/bam/scripts')
+    bam_scripts = { 'bamsetup.cmm':['Setup BAM Scripts',env['MSM_ID']],}
+
+    if env.has_key('MODEM_PROC'):
+        env.AddCMMScripts ('MPSS',[BAMSCRIPTSPATH],bam_scripts ,'hwengines')
+    elif env.has_key('ADSP_PROC'):
+        env.AddCMMScripts ('ADSP',[BAMSCRIPTSPATH],bam_scripts ,'hwengines')
+
+except:
+    pass	

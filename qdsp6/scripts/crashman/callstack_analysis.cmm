@@ -1,0 +1,152 @@
+entry &OutputPath
+do analy_qurt_error.cmm
+printer.file &OutputPath_temp\analy_qurt_error.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.Area IO
+WINclear TOP
+printer.open &OutputPath_Qurt\QURTVersion.txt
+wp.v.v %STRING QURTK_version
+printer.file.close
+&tem="GetTCBPointer"
+&cmd="python CacheStatusAnalysis.py &tem &OutputPath_temp"
+Os.Hidden &cmd
+OPEN #1 "&OutputPath_temp\TCBPointer.txt" /READ
+READ #1 %line &TCBPointer
+READ #1 %line &CheckFlag
+CLOSE #1
+&cmd="python FindQurtVer.py &OutputPath_Qurt"
+os.hidden &cmd
+OPEN #1 "&OutputPath_Qurt\QURTVerFlag.txt" /READ
+READ #1 %line &QURTCheckFlag
+CLOSE #1
+
+;---Check if it is err_ex thread
+;---If it is err_ex thraed , get the qurt error from qurt_error_info
+
+&max_cnt=5
+&error_thread=0
+&crash_error_tcb=&TCBPointer
+&pcycle=0
+&counter=0
+&prev_pcycle=0x7fffffffffffffff
+
+if ("&CheckFlag"=="")
+(
+    &CheckFlag=0
+)
+
+if ("&TCBPointer"!="")
+(
+    if (&TCBPointer!=0)
+    (
+        &value_ugpgp=v.value(((QURTK_thread_context*)&crash_error_tcb)->ugpgp)
+        &value_lo=&value_ugpgp&0xFFFFFFFF
+        &value_ugp=&value_ugpgp>>0x20
+        &value_ugp=&value_ugp&0xFFFFFFFF
+
+        &Linkedlist_l_name_full=V.STRING(((QURT_utcb_t)&value_ugp).attr.name)
+        &err_ex_name="err_ex"
+        &err_ex_pd1_name="err_pd_ex_1"
+        &err_ex_pd2_name="err_pd_ex_2"
+        &err_ex_pd3_name="err_pd_ex_3"
+
+
+        if (("&Linkedlist_l_name_full"=="&err_ex_name")||("&Linkedlist_l_name_full"=="&err_ex_pd1_name")||("&Linkedlist_l_name_full"=="&err_ex_pd2_name")||("&Linkedlist_l_name_full"=="&err_ex_pd3_name"))
+        (
+
+            while (&counter<&max_cnt)
+            (
+               &error_thread=v.value(QURT_error_info.users_errors.entry[&counter].error_tcb)
+
+               if (&error_thread!=0)
+               (
+                  &pcycle=v.value(QURT_error_info.users_errors.entry[&counter].pcycle)
+                  if (&pcycle<&prev_pcycle)
+                  (
+                 &crash_error_tcb= &error_thread
+                  )
+                )
+                &counter=&counter+1
+            ) 
+
+            if (&crash_error_tcb==0)
+            (
+                &crash_error_tcb= &error_thread
+            )
+            &TCBPointer=&crash_error_tcb
+            &CheckFlag=1
+        )
+    )
+)
+if (&CheckFlag==1)
+(
+    do &CurrentDirectory\loadtcb.cmm &TCBPointer &QURTCheckFlag
+    printer.file &OutputPath_temp\Crashed_ThreadCallStack.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.v.f /task &TCBPointer
+    printer.file.close
+    &tem="UpdateRunningCallStack"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath"
+    Os.Hidden &cmd
+    printer.file &OutputPath_Qurt\dsp_QT.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.task.tasklist
+    printer.file.close
+    &tem="UpdateCrashSWThread"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath &TCBPointer"
+    Os.Hidden &cmd
+    do &CurrentDirectory\get_error.cmm &TCBPointer
+    printer.file &OutputPath_temp\get_error.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area err_info
+    printer.file.close
+    WINclear TOP
+    &tem="Error_Info"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath"
+    Os.Hidden &cmd
+)
+if (&CheckFlag==2)
+(
+    printer.file &OutputPath_temp\Crashed_ThreadCallStack.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.v.f /task &TCBPointer
+    printer.file.close
+    &tem="UpdateRunningCallStack"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath"
+    Os.Hidden &cmd
+    printer.file &OutputPath_temp\StackWalkerCallStack.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    do &CurrentDirectory\q6_stack_walker.cmm &TCBPointer
+    wp.area q6_sw
+    printer.file.close
+    WINClear TOP  
+    &tem="UpdateStackWalkerCallStack"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath"
+    Os.Hidden &cmd
+    printer.file &OutputPath_Qurt\dsp_QT.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.task.tasklist
+    printer.file.close
+    &tem="UpdateCrashSWThread"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath &TCBPointer"
+    Os.Hidden &cmd
+    do &CurrentDirectory\get_error.cmm &TCBPointer
+    printer.file &OutputPath_temp\get_error.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area err_info
+    printer.file.close
+    WINclear TOP
+    &tem="Error_Info_Area"
+    &cmd="python CacheStatusAnalysis.py &tem &OutputPath"
+    Os.Hidden &cmd
+)
+
+

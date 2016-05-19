@@ -1,0 +1,189 @@
+# @file rcevt.scons
+# @brief This file contains the API for the Run Control Event Notification, API 2.0
+#===============================================================================
+# NOTE: The @brief description above does not appear in the PDF.
+# The tms_mainpage.dox file contains the group/module descriptions that
+# are displayed in the output PDF generated using Doxygen and LaTeX. To
+# edit or update any of the group/module text in the PDF, edit the
+# tms_mainpage.dox file or contact Tech Pubs.
+#===============================================================================
+#===============================================================================
+# Copyright (c) 2013 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary.
+#===============================================================================
+#===============================================================================
+# Edit History
+# $Header: //components/rel/core.adsp/2.6.1/debugtools/rcevt/build/rcevt.scons#1 $
+# $DateTime: 2014/10/16 12:45:40 $
+# $Change: 6781644 $
+# $Author: pwbldsvc $
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+env.VariantDir('${BUILDPATH}', '${BUILD_ROOT}/core/debugtools/rcevt/src', duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External Dependency
+#-------------------------------------------------------------------------------
+
+#env.RequireExternalApi([
+#   'XYZ',
+#])
+
+#-------------------------------------------------------------------------------
+# Internal Dependency
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'TMS',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS', # REQ FOR KERNEL? KERNEL SHOULD PROVIDE DEPENDENCY
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+RCEVT_COMMON = [
+   '${BUILDPATH}/rcecb.c',              # API
+   '${BUILDPATH}/rcevt.c',              # API
+   '${BUILDPATH}/rcevt_common.c',       # Internal
+   '${BUILDPATH}/rcevt_internal.c',     # Internal
+]
+
+RCEVT_DAL = [
+   '${BUILDPATH}/rcevt_dal.c',          # API
+   '${BUILDPATH}/rcevt_dal_impl.c',     # Internal
+]
+
+RCEVT_POSIX = [
+   '${BUILDPATH}/rcevt_posix.c',        # API
+   '${BUILDPATH}/rcevt_posix_impl.c',   # Internal
+]
+
+RCEVT_QURT = [
+   '${BUILDPATH}/rcevt_qurt.c',         # API
+   '${BUILDPATH}/rcevt_qurt_impl.c',    # Internal
+]
+
+RCEVT_REX = [
+   '${BUILDPATH}/rcevt_rex.c',          # API
+   '${BUILDPATH}/rcevt_rex_impl.c',     # Internal
+]
+
+RCEVT_DAL_VOID = [
+   '${BUILDPATH}/rcevt_dal_void.c',     # Internal
+]
+
+RCEVT_POSIX_VOID = [
+   '${BUILDPATH}/rcevt_posix_void.c',   # Internal
+]
+
+RCEVT_QURT_VOID = [
+   '${BUILDPATH}/rcevt_qurt_void.c',    # Internal
+]
+
+RCEVT_REX_VOID = [
+   '${BUILDPATH}/rcevt_rex_void.c',     # Internal
+]
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+RCEVT_IMG = [
+
+   'CORE_APPS',                  # Domain(REX + TN)
+   'CORE_EOS',                   # Domain(REX + EOS)
+   'CORE_GSS',                   # Domain(REX + GSS)
+   'CORE_RPM',                   # Domain(REX + RPM)
+   'CORE_VPU',                   # Domain(NHLOS + VPU)
+   'CORE_WCN',                   # Domain(REX + WCN)
+
+   'CORE_ROOT_PD',               # Domain(QURTOS)
+   'CORE_USER_PD',               # Domain(User)
+
+   'CORE_QDSP6_SW',              # Domain(QURTOS + Audio)
+   'CORE_MODEM', 'MODEM_MODEM',  # Domain(QURTOS + Modem)
+   'CORE_QDSP6_AUDIO_SW',        # Domain(User Audio)
+   'CORE_QDSP6_MODEM_SW',        # Domain(User Modem)
+   'CORE_QDSP6_SENSOR_SW',       # Domain(User Sensors)
+
+   # 'Logical' User PD
+   #'CORE_QDSP6_SW',              # Domain(QURTOS + Audio)
+   #'CORE_MODEM', 'MODEM_MODEM',  # Domain(QURTOS + Modem)
+]
+
+env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt', RCEVT_COMMON)
+
+# REX Preferred Over DAL
+
+if 'USES_REX' in env:
+   env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_rex', RCEVT_REX)
+else:
+   env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_rex_void', RCEVT_REX_VOID)
+
+if 'USES_DAL' in env:
+ env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_dal', RCEVT_DAL)
+else:
+ env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_dal_void', RCEVT_DAL_VOID)
+
+# QURT Preferred Over POSIX
+
+if 'USES_QURT' in env:
+ env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_qurt', RCEVT_QURT)
+else:
+ env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_qurt_void', RCEVT_QURT_VOID)
+
+if 'USES_POSIX' in env:
+   env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_posix', RCEVT_POSIX)
+else:
+   env.AddLibrary(RCEVT_IMG, '${BUILDPATH}/rcevt_posix_void', RCEVT_POSIX_VOID)
+
+#-------------------------------------------------------------------------------
+# Task Provisioning Information
+#-------------------------------------------------------------------------------
+
+# NONE
+
+#-------------------------------------------------------------------------------
+# Tracer Software Events
+#-------------------------------------------------------------------------------
+
+RCEVT_SWE_EVENTS = [
+
+   ['RCECB_SWE_CREATE',        'RCECB Create         %x %x', 'F'], # Event Created
+   ['RCECB_SWE_REGISTER',      'RCECB Register       %x %x', 'F'], # Event Notification Registration
+   ['RCECB_SWE_SIGNAL',        'RCECB Signal         %x %x', 'F'], # Event Posted
+   ['RCECB_SWE_UNREGISTER',    'RCECB Unregister     %x %x', 'F'], # Event Notification Unregistration
+
+   ['RCEVT_SWE_CREATE',        'RCECB Create         %x %x', 'F'], # Event Created
+   ['RCEVT_SWE_REGISTER',      'RCECB Register       %x %x', 'F'], # Event Notification Registration
+   ['RCEVT_SWE_SIGNAL',        'RCECB Signal         %x %x', 'F'], # Event Posted
+   ['RCEVT_SWE_UNREGISTER',    'RCECB Unregister     %x %x', 'F'], # Event Notification Unregistration
+
+]
+
+if 'USES_QDSS_SWE' in env and len(RCEVT_SWE_EVENTS) != 0:
+   env.Append(CPPDEFINES = ["RCEVT_TRACER_SWEVT"])
+   env.Append(CPPPATH = ['${BUILD_ROOT}/core/debugtools/rcevt/build/${BUILDPATH}'])
+   env.SWEBuilder(['${BUILD_ROOT}/core/debugtools/rcevt/build/${BUILDPATH}/rcevt_tracer_swe.h'], None)
+   env.AddSWEInfo(RCEVT_IMG, RCEVT_SWE_EVENTS)
+
+#-------------------------------------------------------------------------------
+# DALCFG Image "Static" Configuration Items
+#-------------------------------------------------------------------------------
+
+# NONE

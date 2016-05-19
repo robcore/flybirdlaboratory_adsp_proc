@@ -1,0 +1,33 @@
+#===============================================================================
+#
+# Slimbus INC PATHs
+#
+# GENERAL DESCRIPTION
+#    Slimbus INC PATH
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/04/13   rc     Initial revision.
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# These are accessible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('BUSES', [
+   "${INC_ROOT}/core/buses/api/sio",
+])
+

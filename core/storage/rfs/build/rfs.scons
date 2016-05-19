@@ -1,0 +1,131 @@
+#============================================================================
+#
+# RFS Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#----------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/storage/rfs/build/rfs.scons#1 $  $DateTime: 2014/10/16 12:45:40 $  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  ----------------------------------------------------------
+# 2014-08-26  rp   Bring in changes from target-unit-testing.
+# 2014-08-04  rp   Add rfs-utils module.
+# 2014-05-30  dks  Enable compilation for MPSS.
+# 2014-05-27  dks  Remove compilation for MPSS.
+# 2014-04-30  dks  Featurize compilation of RFS for ADSP.
+# 2014-04-04  dks  Add RFS on top of RFSA support.
+# 2014-01-27  dks  Create
+#
+#============================================================================
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+SRCDIR = "${BUILD_ROOT}/core/storage/rfs/src"
+
+env.VariantDir('${BUILDPATH}', SRCDIR, duplicate=0)
+
+
+#----------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#----------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+#----------------------------------------------------------------------------
+# Sources, libraries
+#----------------------------------------------------------------------------
+RFS_SOURCES = [
+         '${BUILDPATH}/rfs_api.c',
+         '${BUILDPATH}/rfs_efs.c',
+         '${BUILDPATH}/rfs_nodev.c',
+         '${BUILDPATH}/rfs_osal.c',
+         '${BUILDPATH}/rfs_rfsa.c',
+         '${BUILDPATH}/rfs_rmts.c',
+         '${BUILDPATH}/rfs_tftp.c',
+         '${BUILDPATH}/rfs_utils.c'
+        ]
+
+
+#----------------------------------------------------------------------------
+# Get the build configuration flags and add them to the environment
+#----------------------------------------------------------------------------
+if 'USES_RFS_USE_TFTP' in env:
+  env.Append (CPPDEFINES = 'FEATURE_RFS_USE_TFTP')
+if 'USES_RFS_USE_RMTS' in env:
+  env.Append (CPPDEFINES = 'FEATURE_RFS_USE_RMTS')
+if 'USES_RFS_USE_EFS' in env:
+  env.Append (CPPDEFINES = 'FEATURE_RFS_USE_EFS')
+if 'USES_RFS_USE_RFSA' in env:
+  env.Append (CPPDEFINES = 'FEATURE_RFS_USE_RFSA')
+
+if 'USES_RFS_USE_RMTS' in env:
+  RCINIT_STARTUP_GRP = 'RCINIT_GROUP_3'
+else:
+  RCINIT_STARTUP_GRP = 'RCINIT_GROUP_1'
+  
+
+if env.has_key('ADSP_PROC'):
+  env.Append (CPPDEFINES = 'FEATURE_RFS_USE_RFSA')
+  env.Append(CPPDEFINES = ['FEATURE_RFSA_ON_ADSP'])
+
+if env.has_key('MODEM_PROC'):
+  env.Append(CPPDEFINES = ['FEATURE_RFSA_ON_MPSS'])
+
+#----------------------------------------------------------------------------
+# Add Libraries to image
+#----------------------------------------------------------------------------
+RFS_DEST_IMAGES = [
+  'MODEM_IMAGE',
+  'CBSP_MODEM_IMAGE',
+  'SINGLE_IMAGE',
+  'CBSP_SINGLE_IMAGE',
+  'QDSP6_SW_IMAGE',
+  'CBSP_QDSP6_SW_IMAGE',
+  'APPS_IMAGE',
+  'CBSP_APPS_IMAGE',
+  'CORE_QDSP6_SW',
+  'CORE_GSS',
+  'CORE_QDSP6_SENSOR_SW',
+  'CORE_MODEM'
+]
+env.AddLibrary (RFS_DEST_IMAGES,'${BUILDPATH}/rfs', RFS_SOURCES)
+
+#----------------------------------------------------------------------------
+# RCINIT Initialization of RFS
+#----------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+   RCINIT_RFS_IMG = RFS_DEST_IMAGES
+   env.AddRCInitFunc(
+      RCINIT_RFS_IMG,
+      {
+       'sequence_group'      : RCINIT_STARTUP_GRP,
+       'init_name'           : 'rfs',
+       'init_function'       : 'rfs_init',
+      })

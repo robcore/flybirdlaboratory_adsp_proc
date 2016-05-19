@@ -1,0 +1,97 @@
+#===============================================================================
+#
+# Example scons for Multi PD builds
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/services/diag/build/diag_lsm_test.scons#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/20/14   SL	      Minor fix for Audio PD support
+# 04/16/12   NG       Example scons for adding sources to multi pd images (adsp2.0)
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/diag"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Features and Definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'KERNEL',
+   'POWER',
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+
+MPD_TEST_DRIVER_SOURCES_SENSOR =  [
+   '${BUILDPATH}/diag_lsm_test/src/Diag_LSM_Test_Sensor.c'
+]
+MPD_TEST_DRIVER_SOURCES_AUDIO =  [
+   '${BUILDPATH}/diag_lsm_test/src/Diag_LSM_Test_Audio.c'
+]
+if 'USES_SENSOR_IMG' in env:
+   mpd_test_driver_sensor_obj = env.Object(MPD_TEST_DRIVER_SOURCES_SENSOR)
+   env.AddObject(['CORE_QDSP6_SENSOR_SW'], [MPD_TEST_DRIVER_SOURCES_SENSOR])
+
+if 'USES_AUDIO_IMG' in env:
+   mpd_test_driver_sensor_obj = env.Object(MPD_TEST_DRIVER_SOURCES_AUDIO)
+   env.AddObject(['CORE_QDSP6_AUDIO_SW'], [MPD_TEST_DRIVER_SOURCES_AUDIO])
+
+if 'USES_SENSOR_IMG' in env:  
+   RCINIT_INIT_DIAG_SENSOR_TEST_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_0',          # required
+     'init_name'                  : 'diag_lsm_test_init',                    # required
+     'init_function'              : 'Diag_LSM_Test_Init',           # required
+   }
+
+   if 'USES_RCINIT' in env:
+      env.AddRCInitFunc( 'CORE_QDSP6_SENSOR_SW', RCINIT_INIT_DIAG_SENSOR_TEST_INIT )
+
+if 'USES_AUDIO_IMG' in env:  
+   RCINIT_INIT_DIAG_AUDIO_TEST_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_0',          # required
+     'init_name'                  : 'diag_lsm_test_init',                    # required
+     'init_function'              : 'Diag_LSM_Test_Init',           # required
+   }
+
+   if 'USES_RCINIT' in env:
+      env.AddRCInitFunc( 'CORE_QDSP6_AUDIO_SW', RCINIT_INIT_DIAG_AUDIO_TEST_INIT )	  

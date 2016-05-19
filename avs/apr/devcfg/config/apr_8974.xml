@@ -1,0 +1,18 @@
+<!--
+  Copyright (c) 2012 Qualcomm Technologies Incorporated.
+           All Rights Reserved.
+
+   DESCRIPTION: APR device config. 
+   $Header: $
+ -->
+ 
+<!-- NULL Driver does not require Dal Driver Interface APIs, since none of AVS HWD drivers uses DAL Device framework -->
+<driver name="NULL">
+   <!-- APRV2_IPC_MSM8974 -->
+   <device id="APRV2_IPC_MSM8974">
+      <props name="APRPropStructPtr" type=DALPROP_ATTR_TYPE_STRUCT_PTR>apr_devcfg_prop</props>
+   </device>
+   
+</driver>
+
+

@@ -1,0 +1,116 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+if not 'USES_PLATFORM_MINIMAL' in env:
+   platform_root = '${BUILD_ROOT}/platform'
+   env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+   env.RequirePublicApi([
+      'PLATFORM_LIBS',
+      'STDDEF',
+      'APPS_STD',
+      'UTILS',
+      'A1STD',
+      'REMOTE',
+      'MOD_TABLE',
+      'DLW',
+      'HAPSDK',
+      'PERF',
+      'A1STD',
+      ])
+
+
+   core_public_apis = [
+      'DAL',
+      'MODEM_DATA',
+      'DEBUGTOOLS',
+      'MPROC',
+      'SERVICES',
+      'STORAGE',
+      'SYSTEMDRIVERS',
+      'KERNEL',
+      ]
+
+   env.RequirePublicApi(core_public_apis, area='core')
+
+   env.RequireRestrictedApi([
+     'SECURITY',
+     'QLIST',
+     ])
+
+   #-------------------------------------------------------------------------------
+   # Source PATH
+   #-------------------------------------------------------------------------------
+   SRCPATH = "${ADSP_PLATFORM_ROOT}/security/src"
+   env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+   # comment out following line to disable assembly modules
+   env.Append(CPPDEFINES = 'USE_QDSP_ASM')
+
+   # un-comment following line to test stack allocation (not recommended)
+   #env.Append(CPPDEFINES = 'BLOWUPSTACK')
+
+   env.PLRegister("sigverify")
+
+   SECURITY_SOURCES =  [
+      '${BUILDPATH}/secboot.c',
+      '${BUILDPATH}/secboot_asn1.c',
+      '${BUILDPATH}/secboot_hw_stub.c',
+      '${BUILDPATH}/secboot_sha1.c',
+      '${BUILDPATH}/secboot_sha2.c',
+      '${BUILDPATH}/sha256_transform.S',
+      '${BUILDPATH}/secboot_sw_hash.c',
+      '${BUILDPATH}/secboot_x509.c',
+      '${BUILDPATH}/secmath_barrett_reduce.c',
+      '${BUILDPATH}/secmath_BIGINT_read_unsigned_bin.c',
+      '${BUILDPATH}/secmath_mod_exp.c',
+      '${BUILDPATH}/secmath_montmul_utils.c',
+      '${BUILDPATH}/workthread.c',
+      '${BUILDPATH}/parseelf.c',
+      '${BUILDPATH}/sec_hwio.c',
+      '${BUILDPATH}/util.c',
+      '${BUILDPATH}/rsapubkey.c',
+      '${BUILDPATH}/dtslicense.c',
+      '${BUILDPATH}/dynconfig.c',
+      '${BUILDPATH}/js.c',
+      '${BUILDPATH}/logger.c',
+      '${BUILDPATH}/montmul_one_opt.S',
+      '${BUILDPATH}/montmul_ref.S',
+      env.AddQaicHeaderDep('${BUILDPATH}/sigverify.c', "apps_std")
+      ]
+
+   #-------------------------------------------------------------------------------
+   # Add Libraries to image
+   #-------------------------------------------------------------------------------
+   security_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+         'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], '${BUILDPATH}/security', SECURITY_SOURCES)
+
+   if 'USES_DEVCFG' in env:
+      dir_prefix = str(env.get('BUILD_ROOT', None)) + '/platform/security/config/'
+      devcfg_file_loc = dir_prefix + 'testrootconfig.xml'
+      if os.path.exists(devcfg_file_loc):
+         DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+         env.AddDevCfgInfo(DEVCFG_IMG,
+            {
+            'devcfg_xml' : devcfg_file_loc,
+            }
+         )
+
+   #-------------------------------------------------------------------------------
+   # Load Subunits (sys)
+   #-------------------------------------------------------------------------------
+   env.LoadSoftwareUnits()
+
+#Clean and pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h', '*.S', '*.so'], '${ADSP_PLATFORM_ROOT}/security'))
+for x in env.FindFiles(['*.c', '*.cpp','*.h'], '${ADSP_PLATFORM_ROOT}/security/build'):
+    CLEAN_LIST.remove(x)
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

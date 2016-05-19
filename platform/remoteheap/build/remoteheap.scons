@@ -1,0 +1,78 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+if 'USES_REMOTE_HEAP' in env and not 'USES_PLATFORM_MINIMAL' in env:
+   platform_root = '${BUILD_ROOT}/platform'
+   env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+   env.RequirePublicApi([
+      'PLATFORM_LIBS',
+      'STDDEF',
+      'APPS_STD',
+      'UTILS',
+      'A1STD',
+      'REMOTE',
+      'DLW',
+      'HAPSDK',
+      ])
+
+
+   core_public_apis = [
+      'DEBUGTOOLS',
+      'MPROC',
+      'SERVICES',
+      'KERNEL',
+      ]
+
+   env.RequirePublicApi(core_public_apis, area='core')
+   env.RequirePublicApi('REMOTEHEAP')
+
+   env.RequireRestrictedApi([
+     'FASTRPC_SMD',
+     'REMOTE_HEAP_MGR',
+     'APPS_MEM',
+     'FASTRPC_PROCESS',
+     ])
+
+   #-------------------------------------------------------------------------------
+   # Source PATH
+   #-------------------------------------------------------------------------------
+
+   SRCPATH = "${ADSP_PLATFORM_ROOT}/remoteheap/src"
+   env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+   #DLExpose(bInit, pre_init_heaps)
+   env.PLRegister("remoteheap")
+
+   REMOTEHEAP_SOURCES =  [
+      env.AddQaicHeaderDep('${BUILDPATH}/remoteheap.c', "apps_mem"),
+      ]
+
+   #Enable to print debug messages
+   env.Append(CPPDEFINES = '_DEBUG')
+   #env.Append(CPPDEFINES = 'VERIFY_PRINT_INFO')
+   #env.Append(CPPDEFINES = 'VERIFY_PRINT_ERROR')
+
+
+   #-------------------------------------------------------------------------------
+   # Add Libraries to image
+   #-------------------------------------------------------------------------------
+   remoteheap_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+        'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], '${BUILDPATH}/remoteheap', REMOTEHEAP_SOURCES)
+
+
+   #-------------------------------------------------------------------------------
+   # Load Subunits (sys)
+   #-------------------------------------------------------------------------------
+   env.LoadSoftwareUnits()
+
+#Clean and pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/remoteheap/src'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

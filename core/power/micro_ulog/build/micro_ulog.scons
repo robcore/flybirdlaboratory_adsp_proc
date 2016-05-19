@@ -1,0 +1,67 @@
+#===============================================================================
+#
+# ULog build script
+#
+# GENERAL DESCRIPTION
+#    Builds the ulog library for Micro Ulog on ADSP Sensor Island Image.
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary and Confidential
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/micro_ulog/src"
+SRCPATHSCRIPTS = env['BUILD_ROOT']+'/core/power/micro_ulog/scripts'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+#-------------------------------------------------------------------------------
+# Define enable QDSS flag if this build supports QDSS
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+  env.Append(CPPDEFINES=['MICRO_ENABLE_QDSS'])
+
+#-------------------------------------------------------------------------------
+# Source code
+#-------------------------------------------------------------------------------
+
+ULOG_MICRO_SOURCES = [
+   '${BUILDPATH}/micro_ULog.c',
+]
+
+#replace with calls to env.AddLibrary?
+ulog_micro_obj = env.Object(ULOG_MICRO_SOURCES)
+ulog_micro_lib = env.Library('${BUILDPATH}/ulog_micro', ulog_micro_obj)
+
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SW', 'CORE_QDSP6_SENSOR_SW'], ulog_micro_lib)
+   env.Append(CPPDEFINES=['ADSP_8994'])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(['CORE_QDSP6_SW', 'CORE_QDSP6_SENSOR_SW'], ulog_micro_lib)

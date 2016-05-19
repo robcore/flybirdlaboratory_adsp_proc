@@ -1,0 +1,108 @@
+#===============================================================================
+#
+# AVS AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} ") 
+env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} ")
+
+env.Append(CFLAGS = '-DMSG_BT_SSID_DFLT=MSG_SSID_APR_ADSP')
+env.Append(CFLAGS = '-DFEATURE_DSM_QUBE -DUSE_INIT_IPC_HACK')
+env.Append(CFLAGS = '-Werror')
+
+core_public_apis = [
+   'DEBUGTOOLS',
+   'KERNEL',
+   'SERVICES',
+   'MPROC',
+   'DAL',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+   ]
+
+
+env.PublishPrivateApi('AVS',[
+    '../core/inc',
+    '../custom/inc',
+    '../devcfg/inc',
+    '../datalink/apr_smdl/inc',
+    '../domain/inc',
+    '../osal/inc',
+    '../utils/inc',
+   ])
+
+env.RequirePublicApi(core_public_apis, area='core')
+env.RequireRestrictedApi('AVS')
+env.RequireProtectedApi('AVS')
+
+
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+LIBNAME = 'apr'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+SRC_DIRS = [
+              'core/src/*.cpp', 
+              'core/src/*.c', 
+              'custom/src/*.cpp', 
+              'custom/src/*.c', 
+              'datalink/apr_smdl/src/*.cpp', 
+              'datalink/apr_smdl/src/*.c', 
+              'devcfg/src/*.c', 
+              'devcfg/src/*.cpp', 
+              'domain/variant/adsp/src/*.cpp', 
+              'domain/variant/adsp/src/*.c', 
+              'osal/variant/qurt/src/*.cpp', 
+              'osal/variant/qurt/src/*.c', 
+              'utils/src/*.cpp', 
+              'utils/src/*.c', 
+              ]
+
+avs_sources = env.GlobSourceFiles(SRC_DIRS, SRCPATH,posix=True)
+
+env.AddLibrary(['AVS_ADSP'], '${BUILDPATH}/'+LIBNAME, avs_sources)
+
+
+
+#-------------------------------------------------------------------------------
+# Device CFG data
+#-------------------------------------------------------------------------------
+LIBNAME_DEVCFG = 'apr_devcfg'
+
+if 'USES_DEVCFG' in env:
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      'soc_xml'    : ['${AVS_ROOT}/apr/devcfg/config/apr_8974.xml',
+                      '${AVS_ROOT}/apr/devcfg/src/apr_devcfg.c']
+    })

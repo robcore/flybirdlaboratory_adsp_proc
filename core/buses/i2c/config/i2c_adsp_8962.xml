@@ -1,0 +1,369 @@
+//===========================================================================
+//
+// FILE:         i2c_adsp_8962.xml
+//
+// DESCRIPTION:  This file contains the DAL XML properties for the QUPI2CPD
+//               Device Access Library.
+//
+//===========================================================================
+//
+//                             Edit History
+//
+// $Header: $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 07/29/13   ms      Added PNOC related parameters.
+// 04/21/10   ps      Updated GSBI1 GPIO config
+// 03/26/10   ur      Added SW_DISABLE_PM property to disable power management
+// 02/16/10   ps      Increased GPIO drive strength to 6mA
+// 01/20/09   dl      created
+//
+//===========================================================================
+//             Copyright c 2010-2013 QUALCOMM Incorporated.
+//                    All Rights Reserved.
+//                  QUALCOMM Proprietary/GTDR
+//===========================================================================
+#include "icbarb.h" /*Chip Bus interface ids for PNOC vote*/
+
+//Defined in DDIInterruptController.h
+#define DALINTRCTRL_ENABLE_DEFAULT_SETTINGS        0x00000001
+#define DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER      0x00000002
+#define DALINTRCTRL_ENABLE_LEVEL_LOW_TRIGGER       0x00000003
+#define DALINTRCTRL_ENABLE_RISING_EDGE_TRIGGER     0x00000004
+#define DALINTRCTRL_ENABLE_FALLING_EDGE_TRIGGER    0x00000005
+
+
+#define  CHIP_BLSP1_BAM_PHYS_ADDR                  0xF9904000
+#define  CHIP_BLSP1_BAM_IRQ_ID                     55
+#define  CHIP_BLSP2_BAM_PHYS_ADDR                  0xF9944000
+#define  CHIP_BLSP2_BAM_IRQ_ID                     56
+#define  SW_BAM_THRESHOLD_VALUE                    1024
+
+
+<driver name="I2C">
+   <global_def>
+      /* GPIO configuration values below should be calculated as the outcome of
+         DAL_GPIO_CFG macro:
+         #define DAL_GPIO_CFG(gpio, func, dir, pull, drive) \
+         (((gpio) & 0x3FF)<< 4 | \
+              ((func) &0xF)       |  \
+          ((dir)  & 0x1) << 14|  \
+          ((pull) & 0x3) << 15|  \
+          ((drive)& 0xF) << 17| DAL_GPIO_VERSION)
+      */
+      <var_seq name="i2cqup1_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x20004023, 0x20004033,end 
+      </var_seq>
+      <var_seq name="i2cqup2_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x20004063, 0x20004073,end 
+      </var_seq>
+      <var_seq name="i2cqup3_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x200040a3, 0x200040b3,end 
+      </var_seq>
+      <var_seq name="i2cqup4_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x20004503, 0x20004513,end 
+      </var_seq>
+      <var_seq name="i2cqup5_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x20004373, 0x20004383,end 
+      </var_seq>
+      <var_seq name="i2cqup6_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x20004573, 0x20004583,end 
+      </var_seq>
+      <var_seq name="i2cqup7_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x200043b3, 0x200043c3,end 
+      </var_seq>
+      <var_seq name="i2cqup8_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x200042f3, 0x20004303,end 
+      </var_seq>
+      <var_seq name="periph_ss_block_name" type=DALPROP_DATA_TYPE_STRING>PERIPH_SS</var_seq> 
+      /* i2c device names */ 
+      <var_seq name="i2c1_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c1</var_seq>
+      <var_seq name="i2c2_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c2</var_seq>
+      <var_seq name="i2c3_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c3</var_seq>
+      <var_seq name="i2c4_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c4</var_seq>
+      <var_seq name="i2c5_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c5</var_seq>
+      <var_seq name="i2c6_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c6</var_seq>
+      <var_seq name="i2c7_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c7</var_seq>
+      <var_seq name="i2c8_dev_name" type=DALPROP_DATA_TYPE_STRING>dev_i2c8</var_seq>
+      /* app clock names */ 
+      <var_seq name="i2cqup1_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup1_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup2_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup2_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup3_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup3_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup4_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup4_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup5_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup1_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup6_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup2_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup7_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup3_i2c_apps_clk</var_seq>
+      <var_seq name="i2cqup8_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup4_i2c_apps_clk</var_seq>
+      /* blsp hclk names */
+      <var_seq name="i2c_blsp1_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+      <var_seq name="i2c_blsp2_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+      //<var_seq name="dal_driver_info" type=DALPROP_DATA_TYPE_STRUCT_INC_FILE>../../../../../../../core/buses/i2c/config/I2cDriverDalInfo_adsp_8974.c</var_seq>
+      /*
+      //<props name="CHIP_BLSP1_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>            0    </props>
+      //<props name="CHIP_BLSP2_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>            0    </props>
+      */
+   </global_def>
+
+   /* Not supported for now
+  <device id="/dev/buses/i2c">
+	  <props name="SW_DRV_NUM_DEVICES" type=DALPROP_ATTR_TYPE_UINT32>       0x12                </props>
+  </device>
+  */
+
+  <device id=DALDEVICEID_I2C_DEVICE_1>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            0    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               64  </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup1_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp1_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x123000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup1_gpio_config_arr </props>
+     
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>12 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 13 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c1_dev_name      </props>    
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0    </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_1 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>       
+   </device> 
+   <device id=DALDEVICEID_I2C_DEVICE_2>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            1    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               65  </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup2_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp1_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x124000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup2_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>14 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 15 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c2_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0      </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0        </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_1 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>     
+   </device>
+   
+   <device id=DALDEVICEID_I2C_DEVICE_3>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            2                    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               66  </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup3_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp1_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x125000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup3_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>16 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 17 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c3_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0    </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        1    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* SW LOGGING OPTIONS */
+     //<props name="SW_ENABLE_DEVICE_LOGS" type=DALPROP_ATTR_TYPE_UINT32>  1    </props>
+     //<props name="SW_LOGS_CALL_TRACE_LEVEL" type=DALPROP_ATTR_TYPE_UINT32>  2    </props>
+     //<props name="SW_LOGS_CALL_DATA_LEVEL" type=DALPROP_ATTR_TYPE_UINT32>  2    </props>
+     //<props name="SW_LOGS_QUP_WRITES_ENABLED" type=DALPROP_ATTR_TYPE_UINT32>  1    </props>
+     //<props name="SW_LOGS_QUP_READS_ENABLED" type=DALPROP_ATTR_TYPE_UINT32>  1    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_1 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>     
+    </device>
+	
+   <device id=DALDEVICEID_I2C_DEVICE_4>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            3                   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               67                 </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup4_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp1_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x126000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup4_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>18 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 19 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c4_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0                  </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_1 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>     
+   </device>
+   
+   <device id=DALDEVICEID_I2C_DEVICE_5>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            4                   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               80                 </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup5_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp2_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x163000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup5_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>20 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 21 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c5_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0                  </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_2 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>     
+   </device>
+   
+   <device id=DALDEVICEID_I2C_DEVICE_6>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            5                   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               81                  </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup6_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp2_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x164000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup6_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP1_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>22 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 23 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c6_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0                  </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_2 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>      
+   </device>
+   
+   <device id=DALDEVICEID_I2C_DEVICE_7>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            6   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               82                 </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup7_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp2_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x165000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup7_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP2_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP2_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>12 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 13 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c7_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0                  </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_2 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>      
+   </device>
+   
+   <device id=DALDEVICEID_I2C_DEVICE_8>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            7     </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               83                 </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     i2cqup8_appclk_name </props>
+     <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>     19200 </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        i2c_blsp2_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x166000 </props>
+     <props name="CHIP_GPIO_CONFIG_ARR" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> i2cqup8_gpio_config_arr </props>
+     /* Bam settings*/
+     <props name="CHIP_BAM_PHYS_ADDR" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP2_BAM_PHYS_ADDR</props>
+     <props name="CHIP_BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>  CHIP_BLSP2_BAM_IRQ_ID</props>
+     <props name="CHIP_QUP_OUTPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>14 </props>
+     <props name="CHIP_QUP_INPUT_BAM_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32> 15 </props>
+     /* Software settings */
+     <props name="SW_DEVICE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>       i2c8_dev_name      </props>
+     <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+     <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             0                  </props>
+     <props name="SW_USE_BAM" type=DALPROP_ATTR_TYPE_UINT32>        0    </props>
+     <props name="SW_BAM_THRESHOLD" type=DALPROP_ATTR_TYPE_UINT32>  SW_BAM_THRESHOLD_VALUE    </props>
+     /* Software settings */
+     <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32> 0x1 </props>
+     /* Pnoc voting */     
+     <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>          1   </props>     
+     <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>               150000 </props>
+     <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_MASTER_BLSP_2 </props>
+     <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>            ICBID_SLAVE_EBI1 </props>      
+   </device>
+   
+</driver>
+ 

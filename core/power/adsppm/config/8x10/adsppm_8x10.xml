@@ -1,0 +1,43 @@
+#include "adsppm_utils.h"
+#include "asic_internal.h"
+
+<driver name="NULL">
+   <device id="/core/power/adsppm">
+     <props name="DEBUG_LEVEL" type=DALPROP_ATTR_TYPE_UINT32>
+           ADSPPM_LOG_LEVEL_INFO
+     </props>
+     <props name="THREAD_NUMBER" type=DALPROP_ATTR_TYPE_UINT32>
+           3
+     </props>
+     <props name="OVERHANG_VOTE_TIMEOUT_MS" type=DALPROP_ATTR_TYPE_UINT32>
+           5
+     </props>
+     <props name="CORE_DESCRIPTORS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           cores_8x10
+     </props>
+     <props name="MEMORY_DESCRIPTORS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           memories_8x10
+     </props>
+     <props name="CLOCK_DESCRIPTORS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           clocks_8x10
+     </props>
+     <props name="BUS_PORT_DESCRIPTORS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           busPorts_8x10
+     </props>
+     <props name="EXTERNAL_BUS_ROUTES" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           extBusRoutes_8x10
+     </props>
+     <props name="MIPS_BUS_ROUTES" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           mipsBwRoutes_8x10
+     </props>
+     <props name="REGISTER_PROGRAMMING_SPEEDS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           regProgSpeeds_8x10
+     </props>
+     <props name="POWER_DOMAIN_DESCRIPTORS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           pwrDomains_8x10
+     </props>
+     <props name="FEATURE_DESCRIPTORS" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+           features_8x10
+     </props>
+   </device>
+</driver>

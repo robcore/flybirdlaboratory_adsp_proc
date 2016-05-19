@@ -1,0 +1,253 @@
+#===============================================================================
+#
+# Basic skeleton image scrip
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/core_libs/build/core_libs.scons#28 $
+#  $DateTime: 2014/11/06 17:14:38 $
+#  $Change: 6907538 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should
+# never be two images with the same unique name
+aliases = ['core_libs', 'adsp_proc', 'adsp_images', 'adsp_mpd_images', 'adsp_core_images', 'adsp_mpd_core_images',
+           'msm8974_MPD', 'mdm9x25_MPD', 'msm8x26_MPD', 'msm8x10_MPD', 'apq8084_MPD', 'msm8962_MPD', 'mpq8092_MPD',
+           'mdm9x35_MPD', 'msm8992_MPD', 'msm8994_MPD', 'msm8996_MPD'
+          ]
+
+#------------------------------------------------------------------------------
+# Init environment variables
+
+build_tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py']
+
+			
+if env.get('CHIPSET') == "msm8994" or env.get('CHIPSET') == "msm8992":
+   build_tools += [
+            '${BUILD_ROOT}/core/bsp/build/scripts/island_builder.py']
+            
+env.InitImageVars(
+   alias_list=aliases,  # aliases list
+   proc='qdsp6',      # proc (depending on tool chain arm, hexago, etc)
+   config='adsp',
+   plat='qurt',           # platform (l4, blast, foo, bar, etc)
+#build_tags = ['BASIC_IMAGE_EXAMPLE'],
+   build_tags = ['CORE_QDSP6_SW', 'BUILD_TEST_MODEM', 'QDSS_EN_IMG','AVS_ADSP','VIDEO_ADSP', 'QMIMSGS_ADSP', 'CORE_ADSP', 'IMAGE_TREE_VERSION_AUTO_GENERATE' ],
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = build_tools
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+if ('USES_FEATURE_DYNAMIC_LOADING_GLOBAL' in env) :
+   env.Replace(USES_FEATURE_DYNAMIC_LOADING = 'yes')
+   #import pdb; pdb.set_trace()
+   env.LoadToolScript('sharedlib_symbols', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+   env.LoadToolScript('dlinker_symbols', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+
+#Add ADSP Image specific linker inputs here
+env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build'])
+
+if 'USES_MULTI_PD' in env:
+   env.PrintInfo("This adsp core image is being built for Multi PD version")
+   env.AddUsesFlags('USES_MPD')
+   env.AddUsesFlags('USES_QURTOS_IMG') #this is the flag to be used for mpd builds to compile for guest os
+   env.Append(CPPDEFINES="SENSOR_IMG_NAME=\\\"M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_SENSOR.pbn\\\"")
+   env.Append(CPPDEFINES="AUDIO_IMG_NAME=\\\"M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_AUDIO.pbn\\\"")
+   env.Append(CPPDEFINES=["MULTI_PD_BUILD"])
+else:
+   env.PrintInfo("This adsp core image is being built for Single PD version")
+
+#---------------------------------------------------------------------------
+# Include PWRDB to the build via USES_PWRDB flag
+#---------------------------------------------------------------------------
+env.AddUsesFlags('USES_PWRDB')
+
+#if image wants to own "main": # image calls core_main to init cbsp
+env.Append(CPPDEFINES=["COREMAIN_EXCLUDE_MAIN"])
+
+#---------------------------------------------------------------------------
+# Load in the tools-set init scripts
+#---------------------------------------------------------------------------
+#hexagon_adsp.py defined the CHIPSET_DIR based on CHIPSET info and whether it is the MEMOPT case
+cust_config_xml = env.RealPath('${BUILD_ROOT}/build/chipset/${CHIPSET_DIR}'+'/qdsp6.xml')
+
+env.PrintInfo("the chipset directory where the XML file called from is: ${CHIPSET_DIR} for cust_config_xml")
+
+# If this is an HCBSP build, include this builder.
+if 'HCBSP' in env:
+   env.LoadToolScript('${BUILD_ROOT}/core/bsp/build/scripts/apttests_heap_builder.py')
+
+# If the apttests_heap_builder.py is present, perform a reduction.
+if 'USES_HEAP_REDUCTION' in env:
+   cust_config_xml = env.ReduceHeapSize("${SHORT_BUILDPATH}/qdsp6",cust_config_xml)
+  
+env.Replace(CONFIG_XML=cust_config_xml)
+
+if 'USES_MALLOC_WRAPPER_ENABLED' in env:
+    env.Append(CFLAGS='-DMALLOC_WRAPPER ')
+
+#Append sim flag if building for sim
+if 'USES_AVS_TEST' in env:
+    env.Append(CFLAGS='-DSIM')
+
+
+# Enable Remote Debugger only for 8974
+if env.get('CHIPSET') == "msm8974":
+    env.AddUsesFlags('USES_REMOTE_DEBUGGER')
+
+#top level control enable/disable Power Collapse feature
+#define the flag to disable PC
+if 'USES_FEATURE_DISABLE_SLEEP_MODES' in env:
+    env.Append(CPPDEFINES=['FEATURE_DISABLE_SLEEP_MODES'])
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+img_shlibs = []
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+au_name_items = env.LoadAreaSoftwareUnits('core')
+image_libs.extend(au_name_items['LIBS'])
+image_objs.extend(au_name_items['OBJS'])
+if env.GetUsesFlag('USES_FEATURE_DYNAMIC_LOADING'):
+   img_shlibs.extend(au_name_items['SHARED_LIBS'])
+
+
+image_units = [image_objs, image_libs, img_shlibs]
+
+if 'USES_ISLAND' in env:
+   island_list = env.GenerateIslandList()
+   image_units += [
+      island_list,
+   ]
+
+#------------------------------------------------------------------------------
+# Putting the image together
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+
+   image_units += local_itmes
+
+   #------------------------------------------------------------------------------
+   # Dynamic Loading Info
+   #------------------------------------------------------------------------------
+   if env.GetUsesFlag('USES_FEATURE_DYNAMIC_LOADING'):
+      dll_itmes= []
+      
+      dlexpose_sym_lst= env.RealPath('${SHORT_BUILDPATH}/DLEXPOSE_CORE_SYMS_AAAAAAAAQ.txt')
+      dlexpose_sym_lst_node = env.DLExposeGenerateList([dlexpose_sym_lst], None)
+      dll_itmes += dlexpose_sym_lst_node
+      
+      if(len(img_shlibs) !=0) :
+         sh_libs_sym_lst= env.RealPath('${SHORT_BUILDPATH}/SHLIBS_CORE_SYMS_AAAAAAAAQ.txt')
+         sh_libs_sym_lst_node = env.SharedLibGenerateList([sh_libs_sym_lst], img_shlibs)
+         dll_itmes += sh_libs_sym_lst_node
+      
+         sym_lst= env.RealPath('${SHORT_BUILDPATH}/CORE_SYMS_AAAAAAAAQ.txt')
+         sym_lst_node = env.ConsolidateSymsList([sym_lst], [dlexpose_sym_lst_node[0], sh_libs_sym_lst_node[0]])
+         dll_itmes += sym_lst_node
+      
+      else:
+         sym_lst= env.RealPath('${SHORT_BUILDPATH}/CORE_SYMS_AAAAAAAAQ.txt')
+         sym_lst_node = env.ConsolidateSymsList([sym_lst], [dlexpose_sym_lst_node[0]])
+         dll_itmes += sym_lst_node
+      
+      image_units += dll_itmes
+
+   
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+
+   # this is where the rule to "link" is done.
+   #image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs, LIBS=image_libs)
+
+   # this is just to create something for testing
+   image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [image_objs, image_libs],
+         add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+   
+   if env.GetUsesFlag('USES_FEATURE_DYNAMIC_LOADING') and len(img_shlibs) !=0 :
+      shlib_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}" + "_SYMS.txt", [img_shlibs],
+         add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed
+   #
+   image_units += [
+      image_elf,
+   ]
+  
+   if env.GetUsesFlag('USES_FEATURE_DYNAMIC_LOADING') and len(img_shlibs) !=0 :
+      image_units += [
+      shlib_elf,
+      ]
+ 
+   if 'USES_CMMBUILDER' in env:
+      cmmscripts = env.CMMGenerateFiles()
+      image_units += [cmmscripts]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)
+env.CMMBuilder(None, None)

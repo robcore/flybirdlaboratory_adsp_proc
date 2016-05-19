@@ -1,0 +1,77 @@
+
+#===============================================================================
+#
+# DPC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013-2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/ssc.adsp/2.6.1/common/usam/algo/dpc/build/dpc.scons#1 $
+#===============================================================================
+
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo/dpc/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo/dpc/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/sam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DPC_SOURCES = [
+      '${BUILDPATH}/dpc.c',
+      '${BUILDPATH}/dpc_msg.c',
+   ]
+
+   
+algo_dpc_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+                                    '${BUILDPATH}/sam_algo_dpc',  DPC_SOURCES)
+
+# Sources that should not be shared
+DPC_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/algo/dpc/src')
+
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # headers that should not be shared in HD22
+   DPC_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo/dpc/inc')
+
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], DPC_CLEAN_SOURCES)

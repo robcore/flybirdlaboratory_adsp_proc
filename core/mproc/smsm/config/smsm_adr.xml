@@ -1,0 +1,39 @@
+//-----------------------------------------------------------------------------
+//    Shared Memory Synchronization Mechanism A+D+R Device Configuration
+//-----------------------------------------------------------------------------
+//
+// FILE:        smsm_adr.xml
+//
+// DESCRIPTION: This file contains DAL XML config properties for the SMSM 
+//              module, for images on targets that have an 
+//              Apps, ADSP, and RPM processor.
+//
+//=============================================================================
+// Copyright (c) 2013 by QUALCOMM, Incorporated.
+// All Rights Reserved.
+// Qualcomm Confidential and Proprietary.
+//=============================================================================
+//
+//                          EDIT HISTORY FOR FILE
+//
+// $Header:  $
+//
+// when       who     what, where, why
+// --------   ---     ---------------------------------------------------------
+// 10/30/13   bt      Initial revision for 8084 APQ (no MPSS or WCNSS).
+// ----------------------------------------------------------------------------
+
+<driver name="NULL">
+  <global_def></global_def>
+  <device id="/core/mproc/smsm">
+    <props name="smsm_intr_enabled" type= DALPROP_ATTR_TYPE_BYTE_SEQ>
+      // Enable interrupts on edges only where remote endpoint is present.
+      0x1, // Apps
+      0x0, // MPSS/GSS
+      0x1, // ADSP
+      0x0, // DSPS
+      0x0, // WCNSS
+      end
+    </props>
+  </device>
+</driver>

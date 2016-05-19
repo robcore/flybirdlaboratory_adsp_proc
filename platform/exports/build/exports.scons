@@ -1,0 +1,87 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+exports_root = str(env.get('BUILD_ROOT', None)) + '/platform/exports'
+
+if 'USES_FEATURE_DYNAMIC_LOADING' in env :
+    # Example of exposing a single symbol
+    env.DLExpose("__stack_chk_guard")
+
+    if not 'USES_PLATFORM_MINIMAL' in env:
+        # Example of exposing multiple symbols as a comma separated list
+        env.DLExpose("dlw_Open, dlw_Sym, dlw_Error, dlw_Close")
+        # Exposing base symbols via a file
+        env.DLExposeFile(exports_root + '/dl_base_symbols.lst')
+
+        # HAP symbols are not required for sensors image
+        if str(env.get('USES_SENSOR_IMG')) != 'yes':
+            env.DLExposeFile(exports_root + '/dl_hap_symbols.lst')
+
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+env.RequirePublicApi([
+  'PLATFORM_QDI',
+  'HAPSDK',
+  'PLATFORM_LIBS',
+  'STDDEF',
+  'UTILS',
+  ])
+
+env.RequireRestrictedApi([
+  'FASTRPC_POWER',
+  ])
+
+core_public_apis = [
+   'SYSTEMDRIVERS',
+   'KERNEL',
+   'DAL',
+   'SERVICES',
+   'POWER',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+
+avs_public_apis = [
+   'AVS',
+   ]
+
+env.RequirePublicApi(avs_public_apis, area='avs')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/exports/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# Register the qdi driver
+env.PLRegister("platform_qdi")
+
+EXPORTS_SOURCES =  [
+   '${BUILDPATH}/platform_qdi_driver.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+exports_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/exports', EXPORTS_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+# Clean / pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.S', '*.h'], '${ADSP_PLATFORM_ROOT}/exports/src'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+     'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

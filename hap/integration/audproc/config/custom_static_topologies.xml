@@ -1,0 +1,78 @@
+<!-- 
+#===============================================================================
+#
+# custom_static_topologies.xml
+#
+# GENERAL DESCRIPTION
+#    This file will contain the custom topologies information. If a topology
+#	 need to be added to Elite framework with some APPI modules then this file 
+#	 need to be updated with topology information and modules inside topology.
+#
+# USAGE
+#    1) Adding topologies using command line
+#		If a topology need to be added using command line then this xml 
+#		file should be updated manually.
+#
+#    2) Adding topologies using Hexagon IDE
+#		If a topology need to be added using IDE then need to specify the topology 
+#		details and modules in it using GUI provided by IDE. IDE will update 
+#		this xml file automatically.
+#
+# Copyright (c) 2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#===============================================================================
+-->
+
+<!--<static_topologies num_topologies="Specify number of topologies that are going to be added">
+		<topology type="Specify current topology type ie. POPP, POPREP, COPP, COPREP">
+			<topology_id_name>Specify the current Topology ID name in upper case or lower case</topology_id_name>
+			<topology_id_value>Specify the current Topology ID value</topology_id_value>
+			<topology_def_name>Specify the topology definition structure name</topology_def_name>
+				<modules_in_topo>
+					<module>
+						<module_id>Specify the module id name or value that need to be part of this topology</module_id>
+						<init_params>Specify the initialization parameters for the current module in topology</init_params>
+						<is_lpm>Specify the is_lpm flag for the current module in topology</is_lpm>
+						<module_info_table_name>Specify the module information table name for the current module in topology</module_info_table_name>
+					</module>
+				</modules_in_topo>
+		</topology>
+	</static_topologies> -->
+
+<!-- Example Topology Information -->
+<!--<static_topologies num_topologies="2">
+		<topology type="POPP">
+			<topology_id_name>ASM_STREAM_PP_CUSTOM_GAIN_TOPO_ID</topology_id_name>
+			<topology_id_value>0x10010000</topology_id_value>
+			<topology_def_name>popp_gain_ctrl_def</topology_def_name>
+				<modules_in_topo>
+					<module>
+						<module_id>0x10010080</module_id>
+						<init_params>{0}</init_params>
+						<is_lpm>FALSE</is_lpm>
+						<module_info_table_name>gain_ctrl_def</module_info_table_name>
+					</module>
+				</modules_in_topo>
+		</topology>
+		<topology type="COPP">
+			<topology_id_name>ADM_PP_CUSTOM_FIR_TOPO_ID</topology_id_name>
+			<topology_id_value>0x10010000</topology_id_value>
+			<topology_def_name>popp_gain_ctrl_def</topology_def_name>
+				<modules_in_topo>
+					<module>
+						<module_id>0x10010090</module_id>
+						<init_params>{16}</init_params>
+						<is_lpm>FALSE</is_lpm>
+						<module_info_table_name>fir_def</module_info_table_name>
+					</module>
+				</modules_in_topo>
+		</topology>
+	</static_topologies> -->
+
+<!-- Note: Donot change the tag names inside elements
+	 If any wrong tag name is used then custom_appi_integration.py script will return an ERROR -->
+
+<static_topologies num_topologies="0">
+</static_topologies>

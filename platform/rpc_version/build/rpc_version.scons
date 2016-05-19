@@ -1,0 +1,66 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+if not 'USES_PLATFORM_MINIMAL' in env:
+
+  platform_root = '${BUILD_ROOT}/platform'
+  env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+  env.RequirePublicApi([
+     'PLATFORM_LIBS',
+     'STDDEF',
+     'UTILS',
+     'A1STD',
+     'REMOTE',
+     'MOD_TABLE',
+     'DLW',
+    ])
+
+  core_public_apis = [
+      'KERNEL',
+      ]
+
+  env.RequirePublicApi(core_public_apis, area='core')
+
+
+  #-------------------------------------------------------------------------------
+  # Source PATH
+  #-------------------------------------------------------------------------------
+  SRCPATH = "${ADSP_PLATFORM_ROOT}/rpc_version"
+  env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+  env.PublishPrivateApi('RPC_VERSION_PRIVATE', [
+    '${BUILD_ROOT}/platform/rpc_version'])
+  env.RequirePrivateApi('RPC_VERSION_PRIVATE')
+
+  env.PLRegister("rpcversion")
+
+  RPC_VERSION_SOURCES =  [
+     '${BUILDPATH}/rpcversion_dsp.c',
+     env.QaicSkelFromIdl("rpcversion"),
+     ]
+
+  #-------------------------------------------------------------------------------
+  # Add Libraries to image
+  #-------------------------------------------------------------------------------
+  rpc_version_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/rpc_version', RPC_VERSION_SOURCES)
+
+  #-------------------------------------------------------------------------------
+  # Load Subunits (sys)
+  #-------------------------------------------------------------------------------
+  env.LoadSoftwareUnits()
+
+#Clean and pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/rpc_version'))
+for x in env.FindFiles(['*.c', '*.cpp','*.h'], '${ADSP_PLATFORM_ROOT}/rpc_version/build'):
+    CLEAN_LIST.remove(x)
+
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)
+

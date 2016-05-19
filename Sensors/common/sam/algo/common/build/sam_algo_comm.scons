@@ -1,0 +1,135 @@
+#===============================================================================
+#
+# SAM common algorithm library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 2013-10-20  ad     update compiler optimization
+# 06/25/2013  ps     update require method for Public APIs
+# 12/02/2012  ag     Add multi PD support
+# 04/25/2011  jh     Re-enabling generation of library in internal DSPS build 
+#                    and using existing library for customer DSPS builds  
+# 04/14/2011  dc     Updates for Blast OS.
+# 03/24/2011  ag     Enabling generation of library in internal build and
+#                    using existing library for customer builds
+# 12/22/2010  pg     Update for accessing UCOS header files from DALSYS. 
+# 08-17-10    ad     initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/sam/algo/common/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CCFLAGS = " -O2 ")
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+if env.has_key('SNS_BLAST'):
+	env.Append(CPPPATH = [
+	   "${BUILD_ROOT}/core/api/sensors",
+	   "${BUILD_ROOT}/Sensors/common/inc",
+	   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+	   "${BUILD_ROOT}/Sensors/common/sam/algo/common/inc",
+	])
+else:
+	env.Append(CPPPATH = [
+	   "${BUILD_ROOT}/Sensors/api",
+	   "${BUILD_ROOT}/Sensors/common/inc",
+	   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+	   "${BUILD_ROOT}/Sensors/common/sam/algo/common/inc",
+	])
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+ALGO_COMMON_SOURCES = [
+      '${BUILDPATH}/fx_iir.c',
+      '${BUILDPATH}/rel_rest.c',
+      '${BUILDPATH}/sns_buffer.c',
+      '${BUILDPATH}/spi.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#------------------------------------------------------------------------------- 
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   SAM_ALGO_COMMON_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/sam/algo/common/src')
+   SAM_ALGO_COMMON_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/sam/algo/common/inc')
+
+   # Add binary library
+   if env.has_key('SNS_BLAST'):
+      samalgocomm_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+                                             'CORE_QDSP6_SENSOR_SW'],
+                                             '${BUILDPATH}/sam_algo_comm', 
+                                             ALGO_COMMON_SOURCES)
+										 
+      # Clean sources
+      env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+      SAM_ALGO_COMMON_CLEAN_SOURCES)
+   else:
+      samalgocomm_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+                                         '${BUILDPATH}/sam_algo_comm', 
+                                         ALGO_COMMON_SOURCES)
+      # Clean sources
+      env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+      SAM_ALGO_COMMON_CLEAN_SOURCES)
+else:
+   if env.has_key('SNS_BLAST'):
+      samalgocomm_lib = env.Library('${BUILDPATH}/sam_algo_comm', ALGO_COMMON_SOURCES)
+      env.AddLibsToImage(
+      ['CBSP_QDSP6_SW_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+      samalgocomm_lib)
+   else:
+      samalgocomm_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+                                         '${BUILDPATH}/sam_algo_comm', 
+                                         ALGO_COMMON_SOURCES)

@@ -1,0 +1,55 @@
+DSP ELF File
+check for adsp_avs_build_property
+adsp_avs_build_property
+
+HpMp3DecoderModule.so.1.0
+check for two public functions
+hp_mp3_dec_capi_v2_get_static_properties
+hp_mp3_dec_capi_v2_get_static_properties
+hp_mp3_dec_capi_v2_init
+hp_mp3_dec_capi_v2_init
+check for shared_lib_build_property
+shared_lib_build_property
+shared_lib_build_property
+check for obfuscation
+check for dependents
+Compatibility of DSP and HpMp3DecoderModule.so.1.0 is: 0
+
+Mp3DecoderModule.so.1.0
+check for two public functions
+mp3_dec_capi_v2_get_static_properties
+mp3_dec_capi_v2_get_static_properties
+mp3_dec_capi_v2_init
+mp3_dec_capi_v2_init
+check for obfuscation
+check for dependents
+Compatibility of DSP and Mp3DecoderModule.so.1.0 is: 0
+
+ComboMp3DecoderModule.so.1.0
+check for two public functions
+combo_mp3_dec_capi_v2_get_static_properties
+combo_mp3_dec_capi_v2_get_static_properties
+combo_mp3_dec_capi_v2_init
+combo_mp3_dec_capi_v2_init
+check for dependents
+[HpMp3DecoderModule.so.1.0]
+[Mp3DecoderModule.so.1.0]
+Compatibility of DSP and ComboMp3DecoderModule.so.1.0 is: 2
+
+EtsiEaacCommonModule.so.1.0
+check for two public function
+ffr_div32_32
+ffr_div32_32
+CopyBitBufAll
+CopyBitBufAll
+Compatibility of DSP and EtsiEaacCommonModule.so.1.0 is: 0
+
+EtsiEaacPlusEncoderModule.so.1.0
+check for two public functions
+etsi_eaacplus_enc_capi_v2_get_static_properties
+etsi_eaacplus_enc_capi_v2_get_static_properties
+etsi_eaacplus_enc_capi_v2_init
+etsi_eaacplus_enc_capi_v2_init
+check for dependents
+[EtsiEaacCommonModule.so.1.0]
+Compatibility of DSP and EtsiEaacPlusEncoderModule.so.1.0 is: 2

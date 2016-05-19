@@ -1,0 +1,1267 @@
+;============================================================================
+;  Name:
+;    bamanalyze.cmm
+;
+;  Description:
+;    This script helps analyze the state of a BAM and its pipes.
+;
+;============================================================================
+;
+;      Copyright (c) 2012 by Qualcomm Technologies, Inc.  All Rights Reserved.
+;      QUALCOMM Proprietary and Confidential.
+;
+;============================================================================
+; $Header: //components/rel/core.adsp/2.6.1/hwengines/bam/scripts/bamanalyze.cmm#1 $
+; $DateTime: 2014/10/16 12:45:40 $
+; $Author: pwbldsvc $
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; when       who     what, where, why
+; ---------- ---     --------------------------------------------------------
+; 07/31/2012 mk     Created.
+;============================================================================;
+
+; 
+; BAM Address Map
+;
+&BAM_CTRL_OFFSET=0x00000000
+&BAM_REV_OFFSET=0x00000004
+&BAM_SW_REV_OFFSET=0x80
+&BAM_NUMPIPES_OFFSET=0x0000003C
+&BAM_DESC_CNT_TRSHLD_OFFSET=0x00000008
+&BAM_IRQ_SRCS_OFFSET=0x0000000C
+&BAM_IRQ_SRCS_MSK_OFFSET=0x00000010
+&BAM_IRQ_SRCS_UNMASKED_OFFSET=0x00000030
+&BAM_IRQ_STTS_OFFSET=0x00000014
+&BAM_IRQ_CLR_OFFSET=0x00000018
+&BAM_IRQ_EN_OFFSET=0x0000001C
+&BAM_AHB_MASTER_ERR_CTRLS_OFFSET=0x00000024
+&BAM_AHB_MASTER_ERR_ADDR_OFFSET=0x00000028
+&BAM_AHB_MASTER_ERR_DATA_OFFSET=0x0000002C
+&BAM_TESTBUS_REG_OFFSET=0x0000078
+&BAM_CNFG_BITS_OFFSET=0x0000007C
+&BAM_IRQ_SRCS_EEn_OFFSET=0x00000800
+&BAM_IRQ_SRCS_MSK_EEn_OFFSET=0x00000804
+&BAM_IRQ_SRCS_UNMASKED_EEn_OFFSET=0x00000808        
+        
+        
+;BAM PIPE Management Registers
+&BAM_P_CTRLn_OFFSET=0x00001000 
+&BAM_P_RSTn_OFFSET=0x00001004 
+&BAM_P_HALTn_OFFSET=0x00001008 
+&BAM_P_IRQ_STTSn_OFFSET=0x00001010 
+&BAM_P_IRQ_CLRn_OFFSET=0x00001014 
+&BAM_P_IRQ_ENn_OFFSET=0x00001018 
+&BAM_P_TIMERn_OFFSET=0x0000101C 
+&BAM_P_TIMER_CTRLn_OFFSET=0x00001020 
+&BAM_P_PRDCR_SDBNDn_OFFSET=0x1024
+&BAM_P_CNSMR_SDBNDn_OFFSET=0x1028
+
+;PIPE Configuration Registers (RAM)                  
+&BAM_P_EVNT_DEST_ADDRn_OFFSET=0x0000182c  
+&BAM_P_EVNT_REGn_OFFSET=0x00001818  
+&BAM_P_EVNT_GEN_TRSHLDn_OFFSET=0x00001828  
+&BAM_P_SW_OFSTSn_OFFSET=0x00001800  
+&BAM_P_DATA_FIFO_ADDRn_OFFSET=0x00001824  
+&BAM_P_FIFO_SIZESn_OFFSET=0x00001820  
+&BAM_P_DESC_FIFO_ADDRn_OFFSET=0x0000181c  
+&BAM_P_IRQ_DEST_ADDRn_OFFSET=0x0000183c  
+
+
+;BAM PIPE Internal State Registers (RAM)             
+&BAM_P_RETR_CNTXT_n_OFFSET=0x00001834  
+&BAM_P_SI_CNTXT_n_OFFSET=0x00001838   
+&BAM_P_AU_PSM_CNTXT_1_n_OFFSET=0x00001804   
+&BAM_P_PSM_CNTXT_2_n_OFFSET=0x00001808   
+&BAM_P_PSM_CNTXT_3_n_OFFSET=0x0000180c   
+&BAM_P_PSM_CNTXT_4_n_OFFSET=0x00001810   
+&BAM_P_PSM_CNTXT_5_n_OFFSET=0x00001814
+
+;Descriptor Flags
+&BAM_IOVEC_FLAG_INT=0x8000
+&BAM_IOVEC_FLAG_EOT=0x4000
+&BAM_IOVEC_FLAG_EOB=0x2000
+&BAM_IOVEC_FLAG_NWD=0x1000
+&BAM_IOVEC_FLAG_CMD=0x0800
+&BAM_IOVEC_FLAG_LCK=0x0400
+&BAM_IOVEC_FLAG_UNLCK=0x0200
+
+
+;some Globals that get passed around
+LOCAL &Client
+LOCAL &ClientBaseAddress
+LOCAL &Target
+LOCAL &Pipe
+LOCAL &NumPipes  
+LOCAL &first_time
+LOCAL &OutputFileName
+Local &OpenFifoWindow
+
+; ==========================================================================
+;
+; Function Entry Point
+;
+; ==========================================================================
+ENTRY &Option %LINE &ARGS
+
+   &first_time=0
+   &OutputFileName=""
+   &OpenFifoWindow=0
+
+   AREA.CREATE BAM 200. 1000.
+   AREA.SELECT BAM
+   AREA.VIEW BAM
+   AREA.CLEAR BAM
+
+   if (("&Option"=="")||("&Option"=="help"))
+   (
+      print "bamanalyze.cmm <Option> <Varargs> [OptionalArgs]"
+      print "  Option+Varargs: "
+      print "                  help - This message"
+      print "                  bam <Target> <bamname> - Checks all the pipes of a given bam"
+      print "                  pipe <Target> <bamname> <pipenum> - Checks the given pipe of the given bam "
+      print "                  listbams <Target> - Lists all BAMs supported in the given target"
+      print " Optional Arguments: [These have to be of this format, but case-insensitive and must FOLLOW the VarArgs]"
+      print "                  OpFile=<FileName> - Redirects the script output to a file"
+      print "                  DispFifo- When passed will display the Descriptor and Data FIFO windows"
+      print "                  "
+      print " Example:         "
+      print "          do bamanalyze.cmm bam 9x00 a2_bam"
+      print "          do bamanalyze.cmm pipe 9x00 a2_bam 0"   
+      print " Examples with Optional Arguments :"
+      print "          do bamanalyze.cmm pipe 9x00 a2_bam 0 OpFile=C:\temp\output.txt Dispfifo"   
+      ENDDO
+   )
+   if ("&Option"=="bam")
+   (
+      GOSUB ProcessBAMArgs &ARGS
+      GOSUB BAMCheck &Target &Client
+      GOSUB PRINTER "Done"
+   )
+   if ("&Option"=="pipe")
+   (
+      GOSUB ProcessPipeArgs &ARGS
+      DO &Target\spsbaseaddress.cmm &Client
+      ENTRY &ClientBaseAddress
+      GOSUB BAMTopLevel
+      GOSUB BamCheckPipe &Client &ClientBaseAddress &Pipe 1  
+      GOSUB PRINTER "Done"
+   )
+   if ("&Option"=="listbams")
+   (
+      &Target=OS.PPD()+"\&ARG1"     
+      &OutputFileName="&ARG2"
+      GOSUB ListAllBams
+      GOSUB PRINTER "Done"
+   )
+   if ("&Option"=="all")
+   (
+      &Target=OS.PPD()+"\&ARG1"
+      &OutputFileName="&ARG2"
+      GOSUB CheckAllBams
+      GOSUB PRINTER "Done"
+   )
+ENDDO
+
+
+; ==========================================================================
+;
+; Function ProcessBAMArgs
+;
+;   Processes arguments for the "bam" option
+; ==========================================================================
+ProcessBAMArgs:
+ENTRY %LINE &ARGS
+   &OpFileName=""
+   &DescFifo="no"
+   &client=""
+   &target=""
+   ;First argument - Target
+   GOSUB GetArg &ARGS
+   ENTRY &ARG %LINE &ARGS
+   GOSUB IsEmptyArgOrOptArg &ARG
+   ENTRY &IsArgAnOptArg
+   if (&IsArgAnOptArg=="true")
+   (
+     print "Enter the Target to be analyzed :"
+     enter &target
+   )
+   else
+   (
+     &target="&ARG"
+   )
+   &Target=OS.PPD()+"\&target"     
+
+   ; Second Argument - BAM
+   GOSUB GetArg  &ARGS
+   ENTRY &ARG %LINE &ARGS
+   GOSUB IsEmptyArgOrOptArg &ARG
+   ENTRY &IsArgAnOptArg
+   if (&IsArgAnOptArg=="true")
+   (
+     GOSUB ListAllBams
+     print "Enter the BAM to be analyzed: "
+     enter &Client
+   )
+   else
+   (
+     &Client="&ARG"
+   )
+
+
+   GOSUB ProcessOptArgs &ARGS
+RETURN
+
+
+; ==========================================================================
+;
+; Function ProcessPipeArgs
+;
+;   Processes arguments for the "pipe" option
+; ==========================================================================
+ProcessPipeArgs:
+ENTRY %LINE &ARGS
+   &OpFileName=""
+   &DescFifo="no"
+   &client=""
+   &target=""
+
+   ;First argument - Target
+   GOSUB GetArg &ARGS
+   ENTRY &ARG %LINE &ARGS
+   GOSUB IsEmptyArgOrOptArg &ARG
+   ENTRY &IsArgAnOptArg
+   if (&IsArgAnOptArg=="true")
+   (
+     print "Enter the Target to be analyzed :"
+     enter &target
+   )
+   else
+   (
+     &target="&ARG"
+   )
+   &Target=OS.PPD()+"\&target"     
+
+   ;Second argument must be the BAM
+   GOSUB GetArg  &ARGS
+   ENTRY &ARG %LINE &ARGS
+   GOSUB IsEmptyArgOrOptArg &ARG
+   ENTRY &IsArgAnOptArg
+   if (&IsArgAnOptArg=="true")
+   (
+     GOSUB ListAllBams
+     print "Enter the BAM to be analyzed: "
+     enter &Client
+   )
+   else
+   (
+     &Client="&ARG"
+   )
+
+   ;Second argument must be the pipe #
+   GOSUB GetArg  &ARGS
+   ENTRY &ARG %LINE &ARGS
+   GOSUB IsEmptyArgOrOptArg &ARG
+   ENTRY &IsArgAnOptArg
+   if (&IsArgAnOptArg=="true")
+   (
+     print "Enter the pipe to be analyzed: "
+     enter &Pipe
+   )
+   else
+   (
+     &Pipe=&ARG
+   )
+
+   GOSUB ProcessOptArgs &ARGS
+RETURN
+
+
+; ==========================================================================
+;
+; Function GetArgs
+;
+;   Retrieves the first argument from the argument list
+; ==========================================================================
+GetArg:
+ENTRY %LINE &Args
+&FirstArg=""
+&RemArgs="&Args"
+&delim=STRING.SCAN("&Args"," ",0)
+if (&delim!=-1)
+(
+  &FirstArg=STRING.MID("&Args",0,&delim)
+  &RemArgs=STRING.CUT("&Args",&delim)
+)
+else if ("&Args"!="")
+(
+  &FirstArg="&Args"
+  &RemArgs=""
+)
+RETURN &FirstArg &RemArgs
+
+IsEmptyArgOrOptArg:
+ENTRY &ARG
+&arg=STRING.LWR("&ARG")
+IF ("&arg"==""||STRING.FIND("&arg","=")||STRING.SCAN("&arg","descfifo",0)!=-1)
+(
+ RETURN "true"
+)
+RETURN "false"
+
+; ==========================================================================
+;
+; Function ProcessBAMArgs
+;
+;   Processes arguments that are supposed to be optional. It is expected 
+;   that when this subroutine is called, the arglist contains only optional
+;   arguments
+; ==========================================================================
+ProcessOptArgs:
+ENTRY %LINE &ARGS
+
+   GOSUB GetArg  &ARGS
+   ENTRY &ARG %LINE &ARGS
+   WHILE ("&ARG"!="")
+   (
+      &ARG=STRING.LWR("&ARG")
+      IF (STRING.SCAN("&ARG","opfile",0)!=-1)
+      (
+        &OutputFileName=STRING.CUT("&ARG",STRING.LEN("opfile")+1)
+      )
+      IF (STRING.SCAN("&ARG","descfifo",0)!=-1)
+      (
+        &OpenFifoWindow=1
+      )
+     GOSUB GetArg &ARGS
+     ENTRY &ARG %LINE &ARGS
+   )
+RETURN
+
+; ==========================================================================
+;
+; Function CheckAllBams
+;
+;   Checks all the bams in the system. Use it at your own risk!
+; ==========================================================================
+CheckAllBams:
+   DO &Target\spslistbams.cmm
+   ENTRY &bamslist ; Comma separated list
+
+   while (string.find("&bamslist",","))
+   (
+      &loc=STRING.SCAN("&bamslist",",",0)
+      &len=STRING.LEN("&bamslist")
+      &bam=STRING.CUT("&bamslist",-(&len-&loc))
+      &bamslist=STRING.CUT("&bamslist",&loc+1)
+      &Client="&bam"
+      GOSUB BAMCheck &Client
+
+   )
+RETURN
+
+
+; ==========================================================================
+;
+; Function ListAllBams
+;
+;   Lists the BAMs available for the given target
+; ==========================================================================
+ListAllBams:
+   DO &Target\spslistbams.cmm
+   ENTRY &bamslist ; Comma separated list
+
+   while (string.find("&bamslist",","))
+   (
+      &loc=STRING.SCAN("&bamslist",",",0)
+      &len=STRING.LEN("&bamslist")
+      ;print "Location = &loc"
+      &bam=STRING.CUT("&bamslist",-(&len-&loc))
+      &bamslist=STRING.CUT("&bamslist",&loc+1)
+      &str="&bam"
+      GOSUB PRINTER "&str"
+
+      ;print "BAM List : &bamslist"
+   )
+RETURN
+
+; ==========================================================================
+;
+; Function BAMTopLevel
+;
+;   Dumps the top level registers for the BAM
+; ==========================================================================
+BAMTopLevel:
+   ;Get Target Level Initialization
+   DO &Target\spsinit.cmm
+   
+   GOSUB PRINTER
+   
+   DO &Target\spsbaseaddress.cmm &Client
+   ENTRY &ClientBaseAddress
+   
+   &str="**** &Client ****"
+   GOSUB PRINTER "&str"
+   
+   ;Control Info
+   &addr=&ClientBaseAddress+&BAM_CTRL_OFFSET
+   &reg=data.long(a:&addr)
+   &str=" Control [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+   
+   ;Revision Info
+   &addr=&ClientBaseAddress+&BAM_REV_OFFSET
+   &reg=data.long(a:&addr)
+   &str=" Revision [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+   if (&reg<2)
+   (
+       print "********* ERROR: BAM hardware revision is not supported by this script *********"
+       enddo
+   )
+   
+   ;SW Revision
+   &addr=&ClientBaseAddress+&BAM_SW_REV_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" SW Revision [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+   
+   ;Pipe # info
+   &addr=&ClientBaseAddress+&BAM_NUMPIPES_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" Num_Pipes [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+   &NumPipes=(&reg&0xFF)>>0.
+   &str="    Number of Pipes [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&NumPipes)
+   GOSUB PRINTER "&str"
+
+   
+   ;Descriptor Count Threshold
+   &addr=&ClientBaseAddress+&BAM_DESC_CNT_TRSHLD_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" Desc Cnt Threshold [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;IRQ Status
+   &addr=&ClientBaseAddress+&BAM_IRQ_STTS_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" IRQ Status [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;IRQ Clr Status              
+   &addr=&ClientBaseAddress+&BAM_IRQ_CLR_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" IRQ Clr State [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;IRQ Enable                
+   &addr=&ClientBaseAddress+&BAM_IRQ_EN_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" IRQ Enable [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;AHB ERR Control 
+   &addr=&ClientBaseAddress+&BAM_AHB_MASTER_ERR_CTRLS_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" AHB Error Control [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;AHB ERR Address
+   &addr=&ClientBaseAddress+&BAM_AHB_MASTER_ERR_ADDR_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" AHB Error Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;AHB Error Data
+   &addr=&ClientBaseAddress+&BAM_AHB_MASTER_ERR_DATA_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" AHB Error Data [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   ;Config Bits
+   &addr=&ClientBaseAddress+&BAM_CNFG_BITS_OFFSET
+   &reg=(data.long(a:&addr))
+   &str=" Config Bits [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+   GOSUB PRINTER "&str"
+
+   &ee=0
+   while &ee<8. ; Need to confirm
+   (     
+     &str=" EE "+format.DECIMAL(2.,&ee)+")"
+     ;&BAM_IRQ_SRCS_EEn_OFFSET         
+     &addr=&ClientBaseAddress+&BAM_DESC_CNT_TRSHLD_OFFSET+(0x80*&ee)
+     &reg=(data.long(a:&addr))
+     &str="&str"+" IRQ_SRCS [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     
+     ;&BAM_IRQ_SRCS_MSK_EEn_OFFSET     
+     &addr=&ClientBaseAddress+&BAM_DESC_CNT_TRSHLD_OFFSET+(0x80*&ee)
+     &reg=(data.long(a:&addr))
+     &str="&str"+" ; IRQ_SRCS_MSK [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     
+     ;&BAM_IRQ_SRCS_UNMASKED_EEn_OFFSET
+     &addr=&ClientBaseAddress+&BAM_DESC_CNT_TRSHLD_OFFSET+(0x80*&ee)
+     &reg=(data.long(a:&addr))
+     &str="&str"+" ; IRQ_SRCS_UNMASKED [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+     &ee=&ee+1
+   )
+
+   GOSUB PRINTER "   "
+   GOSUB PRINTER "   "
+
+RETURN
+
+; ==========================================================================
+;
+; Function BAMCheck
+;
+;   Dumps the top level and all the pipe registers of a BAM
+; ==========================================================================
+BAMCheck:
+ENTRY &Target &Client
+   
+   GOSUB BAMTopLevel
+   
+   ;Check for each pipe
+
+   &pipe=0
+   while &pipe<&NumPipes
+   (
+     GOSUB BamCheckPipe &Client &ClientBaseAddress &pipe &OpenFifoWindow
+     &pipe=&pipe+1
+   )
+RETURN
+
+; ==========================================================================
+;
+; Function BamCheckPipe
+;
+;   Checks and analyzes a pipe of a given bam
+; ==========================================================================
+BamCheckPipe:
+ENTRY &Client &ClientBaseAddress &pipe &openfifowindow
+
+     &pipeaddr=&ClientBaseAddress+&BAM_P_CTRLn_OFFSET+(0x1000*&pipe)
+     &reg=data.long(a:&pipeaddr)
+     &masked=&reg&0x2
+     if (&reg!=0)
+     (
+        &str=" Pipe &pipe [Enabled]"
+        if ((&reg&0x00000020)==0x00000020)
+        ( 
+           &mode=" System Mode"
+           &dir=" Producer"
+           if ((&reg&0x8)==0x8)
+           (
+                   &dir=" Producer &Client->System"
+           )
+           else
+           (
+                   &dir=" Consumer System->&Client"
+           )
+           &str="&str"+"&mode"+"&dir"
+           GOSUB PRINTER "&str"
+           GOSUB SysPipeInfoDump &ClientBaseAddress &pipe
+        )
+        else
+        (
+          ; BAM - BAM mode
+          &mode=" BAM-BAM Mode"
+          ;Get info on the peer
+          ; First get the Evt Destination address value
+          &addr=&ClientBaseAddress+&BAM_P_EVNT_DEST_ADDRn_OFFSET+(0x1000*&pipe)
+          &peerevtaddr=data.long(a:&addr)        
+          DO &Target\spsdetectbam.cmm &peerevtaddr
+          ENTRY &peerbamname &peerbamaddr
+ 
+          if ("&peerbamname"=="0x0")
+          (
+             GOSUB PRINTER "Peer is invalid"
+          )
+          else
+          (
+  
+            &DstClient="&peerbamname"
+            &dir=" Producer"
+            &dirstate="Producer"
+             if ((&reg&0x8)==0x8)
+             (                
+                     &dir=" Producer &Client->&DstClient"              
+                     &dirstate="Producer"
+             )
+             else
+             (
+                    &dir=" Consumer &DstClient->&Client"
+                    &dirstate="Consumer"
+             )
+             &str="&str"+"&mode"+"&dir"
+             GOSUB PRINTER "&str"
+             
+             ;Compute the peer pipe:
+             &peerpipeno=(&peerevtaddr-&peerbamaddr-&BAM_P_EVNT_REGn_OFFSET)/0x1000
+           
+             GOSUB BAMPipeInfoDump &Client &ClientBaseAddress &pipe &dirstate &DstClient &peerbamaddr &peerpipeno
+           )
+        )    
+        ; Check if they are asking to open the fifo windows
+        ; print "Open Fifo Window : &openfifowindow"
+        if (&openfifowindow==1)
+        (
+            &addr=&ClientBaseAddress+&BAM_P_DESC_FIFO_ADDRn_OFFSET+(0x1000*&pipe)
+            &descfifobase=data.long(a:&addr)
+            &addr=&ClientBaseAddress+&BAM_P_FIFO_SIZESn_OFFSET+(0x1000*&pipe)
+            &fifosizes=data.long(a:&addr)
+            &desc_size=(&fifosizes&0xFFFF)            
+            &desc_size=&desc_size-1
+            if ("&OutputFileName"=="")
+            (
+                d.dump &descfifobase++&desc_size
+            )
+            GOSUB BamDumpDescFIFO &descfifobase &desc_size
+        )      
+     )
+     else
+     (
+        &str=" Pipe &pipe [Disabled]"
+        GOSUB PRINTER "&str"
+        GOSUB BamCheckPipeCorruption &ClientBaseAddress &Client &pipe
+   
+     )
+
+
+RETURN
+
+
+; ==========================================================================
+;
+; Function BamDumpDescFIFO
+;
+;   Dumps the descfifo given teh descbase and descsize
+; ==========================================================================
+BamDumpDescFIFO:
+  ENTRY &descbase &descsize
+  &ptr=0
+  &str="Descriptor FIFO (&descbase ++ &descsize)"
+  GOSUB PRINTER "&str"
+  while (&ptr<=&descsize)
+  (
+     &addr=&descbase+&ptr
+     &str=" [0x"+format.HEX(8.,&addr)+"] "
+     &descword0=data.long(a:&addr)     
+     &descword1=data.long(a:&addr+0x4)
+     ;print "Desc Word 1 = &descword1"
+     &flags=(&descword1&0xFFFF0000)>>0x10
+     &size=(&descword1)&(0xFFFF)
+     &str="&str"+"Buffer : 0x"+format.HEX(8.,&descword0)+" Size: 0x"+format.HEX(8., &size)
+     &str="&str"+" Flags: ["
+     if ((&flags&&BAM_IOVEC_FLAG_INT)!=0x0)
+     (
+       &str="&str"+" INT "
+     )
+     if ((&flags&&BAM_IOVEC_FLAG_EOT)!=0x0)
+     (
+       &str="&str"+" EOT "
+     )
+     if ((&flags&&BAM_IOVEC_FLAG_EOB)!=0x0)
+     (
+       &str="&str"+" EOB "
+     )
+     if ((&flags&&BAM_IOVEC_FLAG_NWD)!=0x0)
+     (
+       &str="&str"+" NWD "
+     )
+     if ((&flags&&BAM_IOVEC_FLAG_CMD)!=0x0)
+     (
+       &str="&str"+" CMD "
+     )
+     if ((&flags&&BAM_IOVEC_FLAG_LCK)!=0x0)
+     (
+       &str="&str"+" LOCK "
+     )
+     if ((&flags&&BAM_IOVEC_FLAG_UNLCK)!=0x0)
+     (
+       &str="&str"+" UNLOCK "
+     )
+     &str="&str"+" ]"
+
+     GOSUB PRINTER "&str"
+     &ptr=&ptr+8.
+  )
+  RETURN
+
+
+; ==========================================================================
+;
+; Function BamCheckPipeCorruption
+;
+;   Checks for pipe corruption in the BAM
+; ==========================================================================
+BamCheckPipeCorruption:
+  ENTRY &bambase &bamname &pipe
+  local &reg
+  local &addr
+  local &count
+
+  &count=0
+  while &count<0x40
+  (
+    &addr=&bambase+0x00001000+(0x40*&pipe)+&count
+    &reg=data.long(a:&addr)
+    if (&reg!=0)
+    (
+      print "********* ERROR: &bamname pipe &pipe is corrupted: &addr = &reg *********"
+      return
+    )
+    &count=&count+4
+  )
+
+  return
+
+; ==========================================================================
+;
+; Function SysPipeInfoDump
+;
+;   Displays analysis for a system pipe
+; ==========================================================================
+SysPipeInfoDump:
+ENTRY &bambase &pipeno
+     ;Control Info
+     &addr=&bambase+&BAM_P_CTRLn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Control [0x"+format.HEX(8.,&addr)+"]           = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;Halt Info
+     &addr=&bambase+&BAM_P_HALTn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Halt [0x"+format.HEX(8.,&addr)+"]              = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;IRQ Status Info
+     &addr=&bambase+&BAM_P_IRQ_STTSn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   IRQ Status [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;IRQ EN info
+     &addr=&bambase+&BAM_P_IRQ_ENn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   IRQ Enable [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;Timer CTRL info
+     &addr=&bambase+&BAM_P_TIMER_CTRLn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Timer Control [0x"+format.HEX(8.,&addr)+"]     = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;Timer info
+     &addr=&bambase+&BAM_P_TIMERn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Timer [0x"+format.HEX(8.,&addr)+"]             = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;EVNT DEST Addr Info
+     &addr=&bambase+&BAM_P_EVNT_DEST_ADDRn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Dest Evt Address [0x"+format.HEX(8.,&addr)+"]  = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;EVNT_REGister Info
+     &addr=&bambase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &sysoffset=&reg&0xffff
+     &str="   Event Register [0x"+format.HEX(8.,&addr)+"]    = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;SW offset
+     &addr=&bambase+&BAM_P_SW_OFSTSn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   SW Offset [0x"+format.HEX(8.,&addr)+"]         = 0x"+format.HEX(8.,&reg)
+     &bamoffset=&reg&0xffff
+     GOSUB PRINTER "&str"
+
+     ;Data FIFO Address Info
+     &addr=&bambase+&BAM_P_DATA_FIFO_ADDRn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Data FIFO Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;Desc FIFO Address Info
+     &addr=&bambase+&BAM_P_DESC_FIFO_ADDRn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &descbase=&reg
+     &str="   Desc FIFO Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;Event Gen Threshold Info
+     &addr=&bambase+&BAM_P_EVNT_GEN_TRSHLDn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Evt Gen Threshold [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     ;FIFO Sizes Info
+     &addr=&bambase+&BAM_P_FIFO_SIZESn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   FIFO Sizes [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)
+     GOSUB PRINTER "&str"
+
+     &addr=&descbase+&sysoffset
+
+     &str="System software NEXT descriptor is at &addr"
+     GOSUB PRINTER "&str"
+
+     &addr1=&descbase+&bamoffset
+     &str="BAM NEXT descriptor is at &addr1"
+     GOSUB PRINTER "&str"
+     if (&addr!=&addr1)
+     (
+       &str="********* NOTE: BAM has not processed all descriptors written by software *********"
+       GOSUB PRINTER "&str"
+     )
+
+
+     GOSUB PRINTER " "
+     GOSUB PRINTER " "
+
+RETURN
+
+
+; ==========================================================================
+;
+; Function BAMPipeInfoDump
+;
+;   Displays analysis for a Bam to Bam pipe
+; ==========================================================================
+BAMPipeInfoDump:
+ENTRY &bamname &bambase &pipeno &bamdir &peerbamname &peerbase &peerpipeno
+     &str="&bamname Pipe 0x"+format.HEX(2.,&pipeno)
+     GOSUB FORMATSTR "&str" 43. CENTER 
+     ENTRY &fillstr
+     &localstr=&fillstr+"  :: "
+     &str="&peerbamname Pipe 0x"+format.HEX(2.,&peerpipeno)
+     GOSUB FORMATSTR "&str" 43. CENTER 
+     ENTRY &fillstr
+     &localstr="   &localstr"+&fillstr
+     
+     ;&str="   &bamname Pipe +"                      ::     &peerbamname Pipe &peerpipeno          "
+     GOSUB PRINTER "&localstr"
+
+     &str="   ------------------------------------------- :: -------------------------------------------"
+     GOSUB PRINTER "&str"
+
+
+     ;Control Info
+     &addr=&bambase+&BAM_P_CTRLn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Control [0x"+format.HEX(8.,&addr)+"]           = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_CTRLn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Control [0x"+format.HEX(8.,&addr)+"]           = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;Halt Info
+     &addr=&bambase+&BAM_P_HALTn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Halt [0x"+format.HEX(8.,&addr)+"]              = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_HALTn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Halt [0x"+format.HEX(8.,&addr)+"]              = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;IRQ Status Info
+     &addr=&bambase+&BAM_P_IRQ_STTSn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   IRQ Status [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_IRQ_STTSn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: IRQ Status [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;IRQ EN info
+     &addr=&bambase+&BAM_P_IRQ_ENn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   IRQ Enable [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_IRQ_ENn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: IRQ Enable [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+    GOSUB PRINTER "&str"
+
+     ;Timer CTRL info
+     &addr=&bambase+&BAM_P_TIMER_CTRLn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Timer Control [0x"+format.HEX(8.,&addr)+"]     = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_TIMER_CTRLn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Timer Control [0x"+format.HEX(8.,&addr)+"]     = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;Timer info
+     &addr=&bambase+&BAM_P_TIMERn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Timer [0x"+format.HEX(8.,&addr)+"]             = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_TIMERn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Timer [0x"+format.HEX(8.,&addr)+"]             = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;EVNT DEST Addr Info
+     &addr=&bambase+&BAM_P_EVNT_DEST_ADDRn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Dest Evt Address [0x"+format.HEX(8.,&addr)+"]  = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_EVNT_DEST_ADDRn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Dest Evt Address [0x"+format.HEX(8.,&addr)+"]  = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;EVNT_REGister Info
+     &addr=&bambase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Event Register [0x"+format.HEX(8.,&addr)+"]    = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Event Register [0x"+format.HEX(8.,&addr)+"]    = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;SW offset
+     &addr=&bambase+&BAM_P_SW_OFSTSn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   SW Offset [0x"+format.HEX(8.,&addr)+"]         = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_SW_OFSTSn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: SW Offset [0x"+format.HEX(8.,&addr)+"]         = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;Data FIFO Address Info
+     &addr=&bambase+&BAM_P_DATA_FIFO_ADDRn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Data FIFO Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_DATA_FIFO_ADDRn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Data FIFO Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;Desc FIFO Address Info
+     &addr=&bambase+&BAM_P_DESC_FIFO_ADDRn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Desc FIFO Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_DESC_FIFO_ADDRn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Desc FIFO Address [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;Event Gen Threshold Info
+     &addr=&bambase+&BAM_P_EVNT_GEN_TRSHLDn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   Evt Gen Threshold [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_EVNT_GEN_TRSHLDn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: Evt Gen Threshold [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;FIFO Sizes Info
+     &addr=&bambase+&BAM_P_FIFO_SIZESn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &str="   FIFO Sizes [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_FIFO_SIZESn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &txt=":: FIFO Sizes [0x"+format.HEX(8.,&addr)+"]        = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ;Producer Side Band Info
+     &addr=&bambase+&BAM_P_PRDCR_SDBNDn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &sb_ctrl=(&reg&0xf0000)>>16.
+     &sb_tog=(&reg&(1<<20.))>>20.
+     &sb_upd=(&reg&(1<<24.))>>24.
+     &sb_free=(&reg&0xFFFF)
+     &str="   Producer Sideband [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_PRDCR_SDBNDn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &peer_sb_ctrl=(&reg&0xf0000)>>16.
+     &peer_sb_tog=(&reg&(1<<20.))>>20.
+     &peer_sb_upd=(&reg&(1<<24.))>>24.
+     &peer_sb_free=(&reg&0xFFFF)
+     &txt=":: Producer Sideband [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+     &str="      CTRL=0x"+format.HEX(1.,&sb_ctrl)+";Tog="+format.HEX(1.,&sb_tog)+";SBUpd="+format.HEX(1.,&sb_upd)+";Bytes_Free=0x"+format.HEX(4.,&sb_free)+" "
+     &txt="::    CTRL=0x"+format.HEX(1.,&peer_sb_ctrl)+";Tog="+format.HEX(1.,&peer_sb_tog)+";SBUpd="+format.HEX(1.,&peer_sb_upd)+";Bytes_Free=0x"+format.HEX(4.,&peer_sb_free)   
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+     
+     ;Consumer Side Band Info
+     &addr=&bambase+&BAM_P_CNSMR_SDBNDn_OFFSET+(0x1000*&pipeno)
+     &reg=data.long(a:&addr)
+     &sb_avail=(&reg&0xFFFF)
+     &sb_ctrl=(&reg&0xf0000)>>16.
+     &sb_tog=(&reg&(1<<20.))>>20.
+     &sb_acktogr=(&reg&(1<<21.))>>21.
+     &sb_acktog=(&reg&(1<<22.))>>22.
+     &sb_wait4ack=(&reg&(1<<23.))>>23.
+     &sb_upd=(&reg&(1<<24.))>>24.
+     &str="   Consumer Sideband [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)+" "
+     &addr=&peerbase+&BAM_P_CNSMR_SDBNDn_OFFSET+(0x1000*&peerpipeno)
+     &reg=data.long(a:&addr)
+     &peer_sb_avail=(&reg&0xFFFF)
+     &peer_sb_ctrl=(&reg&0xf0000)>>16.
+     &peer_sb_tog=(&reg&(1<<20.))>>20.
+     &peer_sb_acktogr=(&reg&(1<<21.))>>21.
+     &peer_sb_acktog=(&reg&(1<<22.))>>22.
+     &peer_sb_wait4ack=(&reg&(1<<23.))>>23.
+     &peer_sb_upd=(&reg&(1<<24.))>>24.
+     &txt=":: Consumer Sideband [0x"+format.HEX(8.,&addr)+"] = 0x"+format.HEX(8.,&reg)
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+     &str="      CTRL=0x"+format.HEX(1.,&sb_ctrl)+";Tog="+format.HEX(1.,&sb_tog)+";SBUpd="+format.HEX(1.,&sb_upd)+";Wait_4_Ack=0x"+format.HEX(4.,&sb_wait4ack)+" "
+     &txt="::    CTRL=0x"+format.HEX(1.,&peer_sb_ctrl)+";Tog="+format.HEX(1.,&peer_sb_tog)+";SBUpd="+format.HEX(1.,&peer_sb_upd)+";Wait_4_Ack=0x"+format.HEX(4.,&peer_sb_wait4ack)   
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+     &str="      Ack_Tog="+format.HEX(1.,&sb_acktog)+";Ack_Tog_r="+format.HEX(1.,&sb_acktogr)+";Bytes_Avail=0x"+format.HEX(4.,&sb_avail)+" "
+     &txt="::    Ack_Tog="+format.HEX(1.,&peer_sb_acktog)+";Ack_Tog_r="+format.HEX(1.,&peer_sb_acktogr)+";Bytes_Avail=0x"+format.HEX(4.,&peer_sb_avail)+" "
+     &str="&str&txt"
+     GOSUB PRINTER "&str"
+
+     ; We have dumped almost all of the registers.
+     ; Now let's analyze the connection
+     GOSUB AnalyzeBAMtoBAM &bamname &bambase &pipeno &bamdir &peerbamname &peerbase &peerpipeno 
+
+
+     GOSUB PRINTER " "
+     GOSUB PRINTER " "
+
+RETURN
+
+; ==========================================================================
+;
+; Function AnalyzeBAMtoBAM
+;
+;   Displays analysis for a bam to bam pipe's connection
+; ==========================================================================
+AnalyzeBAMtoBAM:
+ENTRY &bamname &bambase &pipeno &bamdir &peerbamname &peerbambase &peerpipeno
+
+   &producerbam="&peerbamname"
+   &producerpipe=&peerpipeno    
+   &producerbase=&peerbambase   
+   &consumerbam="&bamname" 
+   &consumerpipe=&pipeno  
+   &consumerbase=&bambase 
+   &error=0
+   if ("&bamdir"=="Producer")
+   (
+           &producerbam="&bamname"
+           &producerpipe=&pipeno
+           &producerbase=&bambase
+           &consumerbam="&peerbamname"  
+           &consumerpipe=&peerpipeno  
+           &consumerbase=&peerbambase 
+
+   )
+   ; Ensure that both the pipes are active first
+   &consumerpipeaddr=&consumerbase+&BAM_P_CTRLn_OFFSET+(0x1000*&consumerpipe)
+   &consumerctrl=data.long(a:&consumerpipeaddr)
+   &producerpipeaddr=&producerbase+&BAM_P_CTRLn_OFFSET+(0x1000*&producerpipe)
+   &producerctrl=data.long(a:&producerpipeaddr)
+   if ((&producerctrl==0)||(&consumerctrl==0))
+   (
+      if (&producerctrl==0)
+      (
+         &localstr="   >> Producer &producerbam 's Pipe &producerpipe is not active"
+         GOSUB PRINTER "&localstr"
+      )
+      if (&consumerctrl==0)
+      (
+         &localstr="   >> Consumer &consumerbam 's Pipe &consumerpipe is not active"
+         GOSUB PRINTER "&localstr"
+      )
+      RETURN
+   )
+
+   ;Peer Event Check
+   &prodaddr=&producerbase+&BAM_P_EVNT_DEST_ADDRn_OFFSET+(0x1000*&producerpipe)
+   &prodreg=data.long(a:&prodaddr)
+   &consumerevtregaddr=&consumerbase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&consumerpipe)
+   &preverror=&error
+   if (&prodreg!=&consumerevtregaddr)
+   (
+      &localstr="     ***** Programming Error : Event Dest Addr on the producer side doesnt contain the consumer side EVNT_REG ************"      
+      GOSUB PRINTER "&localstr"
+      &error=&error+1
+   )
+   &consumeraddr=&consumerbase+&BAM_P_EVNT_DEST_ADDRn_OFFSET+(0x1000*&consumerpipe)
+   &consumerreg=data.long(a:&consumeraddr)
+   &prodevtregaddr=&producerbase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&producerpipe)
+   if (&consumerreg!=&prodevtregaddr)
+   (
+      &localstr="     ***** Programming Error : Event Dest Addr on the consumer side doesnt contain the producer side EVNT_REG ************"      
+      GOSUB PRINTER "&localstr"
+      &error=&error+1
+   )
+   if (&preverror==&error)
+   (
+      &localstr="   >> Event Dest Addr on the producer and consumer sides are programmed correctly"      
+      GOSUB PRINTER "&localstr"
+   )
+
+   ; Check if descriptors are configured in the same way on producer and consumer
+   &preverror=&error
+   &consumeraddr=&consumerbase+&BAM_P_DESC_FIFO_ADDRn_OFFSET+(0x1000*&consumerpipe)
+   &consumerdescfifobase=data.long(a:&consumeraddr)
+   &produceraddr=&producerbase+&BAM_P_DESC_FIFO_ADDRn_OFFSET+(0x1000*&producerpipe)
+   &producerdescfifobase=data.long(a:&produceraddr)
+   if (&producerdescfifobase!=&consumerdescfifobase)
+   (
+      &localstr="     ***** Programming Error : Descriptor FIFO Addresses dont match ************"      
+      GOSUB PRINTER "&localstr"
+      &error=&error+1
+   )
+   &consumeraddr=&consumerbase+&BAM_P_FIFO_SIZESn_OFFSET+(0x1000*&consumerpipe)
+   &consumerfifosizes=data.long(a:&consumeraddr)
+   &produceraddr=&producerbase+&BAM_P_FIFO_SIZESn_OFFSET+(0x1000*&producerpipe)
+   &producerfifosizes=data.long(a:&produceraddr)
+   if ((&producerfifosizes&0xffff)!=(&consumerfifosizes&0xffff))
+   (
+      &localstr="     ***** Programming Error : Descriptor FIFO Sizes dont match ************"      
+      GOSUB PRINTER "&localstr"
+      &error=&error+1
+   )
+   if (&preverror==&error)
+   (
+      &localstr="   >> Descriptor FIFO base and size on the producer and consumer sides are programmed correctly"      
+      GOSUB PRINTER "&localstr"
+
+   )
+   ; Now check the data fifo config
+   &preverror=&error
+   &consumeraddr=&consumerbase+&BAM_P_DATA_FIFO_ADDRn_OFFSET+(0x1000*&consumerpipe)
+   &consumerdatafifobase=data.long(a:&consumeraddr)
+   &produceraddr=&producerbase+&BAM_P_DATA_FIFO_ADDRn_OFFSET+(0x1000*&producerpipe)
+   &producerdatafifobase=data.long(a:&produceraddr)
+   if (&producerdatafifobase!=&consumerdatafifobase)
+   (
+      &localstr="     ***** Programming Error : Data FIFO Addresses dont match ************"      
+      GOSUB PRINTER "&localstr"
+      &error=&error+1
+   )
+   if ((&producerfifosizes>>0x10)!=(&consumerfifosizes>>0x10))
+   (
+      &localstr="     ***** Programming Error : Data FIFO Sizes dont match ************"      
+      GOSUB PRINTER "&localstr"
+      &error=&error+1
+   )
+   if (&preverror==&error)
+   (
+      &localstr="   >> Data FIFO base and size on the producer and consumer sides are programmed correctly"      
+      GOSUB PRINTER "&localstr"
+
+   )   
+
+   ;Check if there are unused descriptors in the FIFO
+   &addr=&producerbase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&producerpipe)
+   &consumerdescoffset=data.long(a:&addr)&0xFFFF ; Consumer is teh one who wrote that
+
+   &addr=&consumerbase+&BAM_P_EVNT_REGn_OFFSET+(0x1000*&consumerpipe)
+   &producerdescoffset=data.long(a:&addr)&0xFFFF; Producer is the one who wrote that
+
+   if (&consumerdescoffset!=&producerdescoffset)
+   (
+      &producernextdesc=&producerdescfifobase+&producerdescoffset
+      &consumernextdesc=&consumerdescfifobase+&consumerdescoffset
+      &localstr="   >> Producer &producerbam Next Descriptor is at &producernextdesc"
+      GOSUB PRINTER "&localstr"      
+      &localstr="   >> Consumer &consumerbam Next Descriptor is at &consumernextdesc"
+      GOSUB PRINTER "&localstr"      
+      &numdescs=(&producerdescoffset-&consumerdescoffset)/8.
+      &localstr="   >> Consumer &consumerbam is yet to process &numdescs descriptors"
+      GOSUB PRINTER "&localstr"      
+
+   )
+
+RETURN 
+
+; ==========================================================================
+;
+; Function PRINTER
+;
+;   Outputs to a file or an AREA window 
+; ==========================================================================
+PRINTER:
+ENTRY &str
+
+if ("&OutputFileName"!="")
+(
+  if (&first_time==0)
+  (
+    ;Open the output file if need be
+    OPEN #1 &OutputFileName /CREATE
+    &first_time=1
+  )
+  WRITE #1 &str
+  
+  IF ("&str"=="Done")
+  (
+    CLOSE #1
+  )
+)
+else
+(
+  print &str
+)
+RETURN
+
+FORMATSTR:
+ENTRY &str &fillwidth &align 
+
+        &len=STRING.LEN(&str)
+        &padlength=&fillwidth-&len
+        &padhead=0
+        &padtail=0
+        &pad=0
+        IF ("&align"=="CENTER")
+        (
+                &padhead=&padlength/2
+                &padtail=&padlength/2 
+        )
+        ELSE IF ("&align"=="HEAD")
+        (
+                &padhead=&padlength
+                        
+        )
+        ELSE IF (&align=="TAIL")
+        (
+                &padtail=&padlength
+        )
+
+        &fillstr=""
+        ;Head
+        while (&pad<&padhead)
+        (
+                &fillstr="&fillstr "
+                &pad=&pad+1
+        )
+        &fillstr="&fillstr"+&str
+        ;Tail
+        &pad=0
+        while (&pad<&padtail)
+        (
+                &fillstr="&fillstr "
+                &pad=&pad+1
+        )
+        RETURN "&fillstr"
+

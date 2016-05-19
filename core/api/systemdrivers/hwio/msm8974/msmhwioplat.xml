@@ -1,0 +1,35 @@
+<!--
+==============================================================================
+
+  @file msmhwioplat.xml
+  @brief Auto-generated QuRT HWIO memsection XML file.
+
+  ============================================================================
+
+  Copyright (c) 2013 Qualcomm Technologies Incorporated.  
+  All Rights Reserved.
+  QUALCOMM Proprietary and Confidential.
+
+  ============================================================================
+
+  $Header: $
+  $DateTime: $
+  $Author: $
+
+==============================================================================
+-->
+
+  <memsection tlb_lock="1" glob="1" virt_addr="0xe0000000" phys_addr="0xf9000000" size="0x01000000" direct="false" attach="rw" cache_policy="uncached" />  <!-- PERIPH_SS_BASE -->
+  <memsection virt_addr="0xe1000000" phys_addr="0xfc100000" size="0x00100000" direct="false" attach="rw" cache_policy="uncached" />  <!-- RPM_BASE -->
+  <memsection virt_addr="0xe1100000" phys_addr="0xfc300000" size="0x00100000" direct="false" attach="rw" cache_policy="uncached" />  <!-- QDSS_QDSS_BASE -->
+  <memsection tlb_lock="1" glob="1" virt_addr="0xe1200000" phys_addr="0xfc400000" size="0x00040000" direct="false" attach="rw" cache_policy="uncached" />  <!-- CLK_CTL_BASE -->
+  <memsection virt_addr="0xe1328000" phys_addr="0xfc428000" size="0x00004000" direct="false" attach="rw" cache_policy="uncached" />  <!-- RPM_SS_MSG_RAM_START_ADDRESS_BASE -->
+  <memsection virt_addr="0xe1460000" phys_addr="0xfc460000" size="0x00010000" direct="false" attach="rw" cache_policy="uncached" />  <!-- SYSTEM_NOC_BASE -->
+  <memsection virt_addr="0xe1580000" phys_addr="0xfc480000" size="0x00001000" direct="false" attach="rw" cache_policy="uncached" />  <!-- CONFIG_NOC_BASE -->
+  <memsection virt_addr="0xe16a0000" phys_addr="0xfc4a0000" size="0x00010000" direct="false" attach="rw" cache_policy="uncached" />  <!-- MPM2_MPM_BASE -->
+  <memsection virt_addr="0xe17b0000" phys_addr="0xfc4b0000" size="0x00010000" direct="false" attach="rw" cache_policy="uncached" />  <!-- SPDM_WRAPPER_TOP_BASE -->
+  <memsection virt_addr="0xe18b0000" phys_addr="0xfc4b0000" size="0x00010000" direct="false" attach="rw" cache_policy="uncached" />  <!-- SECURITY_CONTROL_BASE -->
+  <memsection virt_addr="0xe19c0000" phys_addr="0xfc4c0000" size="0x00010000" direct="false" attach="rw" cache_policy="uncached" />  <!-- PMIC_ARB_BASE -->
+  <memsection virt_addr="0xe1a80000" phys_addr="0xfd480000" size="0x00040000" direct="false" attach="rw" cache_policy="uncached" />  <!-- CORE_TOP_CSR_BASE -->
+  <memsection virt_addr="0xe1b00000" phys_addr="0xfd500000" size="0x00040000" direct="false" attach="rw" cache_policy="uncached" />  <!-- TLMM_BASE -->
+

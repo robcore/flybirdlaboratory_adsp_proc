@@ -1,0 +1,194 @@
+#===============================================================================
+#
+# vMPM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies Inc. (QTI)
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/dev/core.mpss/2.2/mhoover.CORE.MPSS.2.2.8994_Dec11_MPM_FileNameUpdates/power/mpm/build/SConscript#2 $
+#  $DateTime: 2013/12/11 16:04:02 $
+#  $Author: mhoover $
+#  $Change: 4943774 $
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# Create a processor specific macro which can be (ab)used for feature-ization.  
+env.Append(CPPDEFINES = [( 'MPM_BASE_NAME', 'LPASS' )])
+
+# Max number of MPM2 interrupts supported on a given target.
+if env['MSM_ID'] in ['8996']:
+    env.Append(CPPDEFINES = [('MPM_MAX_NUM_INTS = 96')])
+else:
+    env.Append(CPPDEFINES = [('MPM_MAX_NUM_INTS = 64')])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/mpm/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('POWER_MPM', [
+   "${INC_ROOT}/core/power/mpm/inc",
+   "${INC_ROOT}/core/power/mpm/inc/dal",
+   "${INC_ROOT}/core/power/mpm/src",
+   "${INC_ROOT}/core/power/mpm/src/hal",
+   "${INC_ROOT}/core/power/mpm/src/umpm",
+])
+
+#-------------------------------------------------------------------------------
+# Island sections
+#-------------------------------------------------------------------------------
+UMPM_CODE_SECTION_STR = '.text.uMPM'
+UMPM_DATA_SECTION_STR = '.data.uMPM'
+
+island_section = [UMPM_CODE_SECTION_STR, UMPM_DATA_SECTION_STR]
+island_tag = ['CORE_QDSP6_SW']
+
+# Enable island mode uSleep feature
+if 'USES_ISLAND' in env:
+  env.Append(CPPDEFINES=['UMPM_ISLAND_MODE_ENABLE'])
+  env.Append(CPPDEFINES=[
+  ('UMPM_ISLAND_CODE_STR = \\\"' + UMPM_CODE_SECTION_STR + '\\\"'),
+  ('UMPM_ISLAND_DATA_STR = \\\"' + UMPM_DATA_SECTION_STR + '\\\"')])
+  
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DALMPM_SOURCES = [
+   '${BUILDPATH}/dal/Dalmpm.c',
+   '${BUILDPATH}/dal/DalmpmFwk.c',
+   '${BUILDPATH}/dal/DalmpmInfo.c',
+ ]
+
+dalmpm_obj = env.Object(DALMPM_SOURCES)
+dalmpm_lib = env.Library('${BUILDPATH}/Dalmpm', dalmpm_obj)
+
+
+VMPM_SOURCES =  [
+   '${BUILDPATH}/vmpm.c',
+   '${BUILDPATH}/vmpm_internal.c',
+   '${BUILDPATH}/mpmint.c',
+   '${BUILDPATH}/vmpm_utils.c',
+   '${BUILDPATH}/vmpm_log.c',
+   '${BUILDPATH}/os/default/vmpm_os.c',
+   '${BUILDPATH}/os/default/vmpm_target.c',
+   '${BUILDPATH}/hal/vmpm_HAL.c',
+   '${BUILDPATH}/hal/vmpm_HAL_IPC.c',
+]
+
+vmpm_obj = env.Object(VMPM_SOURCES)
+vmpm_lib = env.Library('${BUILDPATH}/vmpm', vmpm_obj)
+
+
+UMPM_SOURCES = [
+    '${BUILDPATH}/umpm/umpm.c',
+    '${BUILDPATH}/umpm/umpm_log.c',
+]
+
+if 'USES_ISLAND' in env:
+  umpm_obj = env.Object(UMPM_SOURCES)
+  umpm_lib = env.Library('${BUILDPATH}/umpm', umpm_obj)
+
+#-------------------------------------------------------------------------------
+# Add device config information
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   default_devcfg_xml = '${BUILD_ROOT}/core/power/mpm/config/MPMDevCfg.xml'
+   default_dalmpm_xml = '${BUILD_ROOT}/core/power/mpm/config/dalmpm.xml'
+   hb_devcfg_xml = '${BUILD_ROOT}/core/power/mpm/config/MPMDevCfg_HoneyBadger.xml'
+
+   # Providing DevCfg information about our xml file and source code files.
+   # Change files or add targets as required.
+   env.AddDevCfgInfo(
+      DEVCFG_IMG,
+      {
+       '8974_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8974/MPMIntDevCfgData.c'],
+       '8994_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8994/MPMIntDevCfgData.c'],
+       '9x25_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/9x25/MPMIntDevCfgData.c'],
+       '8x26_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8x26/MPMIntDevCfgData.c'],
+       '8x10_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8x10/MPMIntDevCfgData.c'],
+       '9x35_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/9x35/MPMIntDevCfgData.c'],
+       '8962_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8962/MPMIntDevCfgData.c'],
+       '8x62_xml' : [default_devcfg_xml, 
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8962/MPMIntDevCfgData.c'], # Requires actual mapping
+       '8084_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8084/MPMIntDevCfgData.c'],
+       '8092_xml' : [default_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8092/MPMIntDevCfgData.c'],
+       '8996_xml' : [hb_devcfg_xml,
+                     default_dalmpm_xml,
+                     '${BUILD_ROOT}/core/power/mpm/config/asic/8996/MPMIntDevCfgData.c']
+       }
+  )
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IMG_LIST = ['CORE_QDSP6_SW', 'CBSP_QDSP6_SW_IMAGE']
+
+env.AddLibsToImage(IMG_LIST, [vmpm_lib, dalmpm_lib])
+
+if 'USES_ISLAND' in env:
+  env.AddLibsToImage(IMG_LIST, [umpm_lib])
+  env.AddIslandLibrary(island_tag, vmpm_lib, island_section)
+  env.AddIslandLibrary(island_tag, dalmpm_lib, island_section)
+  env.AddIslandLibrary(island_tag, umpm_lib)
+
+#-------------------------------------------------------------------------------
+# Add vmpm_init function to RCINIT
+#-------------------------------------------------------------------------------
+
+# rpm driver properties
+RCINIT_PROPS = {
+  'sequence_group'             : 'RCINIT_GROUP_0',
+  'init_name'                  : 'vmpm',
+  'init_function'              : 'vmpm_init',
+  'dependencies'               : ['GPIOInt', 'dalsys'],
+}
+
+if 'USES_RCINIT' in env: 
+  env.AddRCInitFunc(IMG_LIST, RCINIT_PROPS)

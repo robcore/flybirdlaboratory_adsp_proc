@@ -1,0 +1,174 @@
+#===============================================================================
+#
+# SAM DSPS framework library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/ssc.adsp/2.6.1/sam/framework/build/framework.scons#1 $
+#  $DateTime: 2014/12/01 08:57:58 $
+#  $Author: pwbldsvc $
+#  $Change: 7052472 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who     what, where, why
+# --------    ---     ---------------------------------------------------------
+# 2014-04-18  sc      Removed target-specific folders
+# 2014-04-04  MW      Added SENSORS_DD_DEV_FLAG for HD22
+# 2013-10-20  ad      update compiler optimization
+# 2013-10-14  sc      added support on oem_1 algo
+# 2013-06-25  ps      update require method for Public APIs
+# 2013-06-05  pd      Added Significant Motion Detection
+# 2013-06-04  tc      Added support for Game Rotation Vector
+# 2013-02-13  agk     Added SYSTEMDRIVERS core bsp dependency to support TLMM APIs
+# 2012-12-02  ag      Add multi PD support
+# 2012-07-29  ag      Porting from SMR to QMI
+# 2011-07-18  ad      refactor SAM for memory optimization
+# 2011-05-25  ad      added unit test support on target 
+# 2011-04-26  ad      added internal service dependency
+# 2011-04-18  ad      Support compilation of target specific source files
+# 2011-04-17  jh      Move target independent source files to common folder
+# 2011-01-26  jh      Reintroducing updates for accessing UCOS header files from DALSYS
+# 2010-12-22  pg      Update for accessing UCOS header files from DALSYS. 
+# 2010-10-08  jh      Removing IDL generated .c files
+# 2010-09-29  sj      Adding support for debug strings from DSPS in SAM
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/sam/framework/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CCFLAGS = " -O2 ")
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'MPROC',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS',
+   'SNS_INT_SRVC'
+]
+
+env.RequireRestrictedApi(SENSORS_API)
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/idl/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+   "${BUILD_ROOT}/Sensors/common/sam/framework/inc/",
+   "${BUILD_ROOT}/Sensors/common/sam/algo/common/inc",
+   "${BUILD_ROOT}/Sensors/debug/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/qmd/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo-ship/threshold/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/gyrobuf/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/basic_gestures/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/bring_to_ear/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/face_and_shake/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/facing/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/gyro_tap/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/tap/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/integ_angle/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/pedometer/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/pam/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo-ship/modem_scn/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/cmc/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/distance_bound/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/gyro_quaternion/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/gravity/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/mag_cal/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/fmv/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/rotation_vector/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/orientation/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/smd/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/game_rotation_vector/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo-ship/oem_1/inc"
+  ])  
+
+#--TEMP
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/core/mproc/qmi/src/qcci",
+   "${BUILD_ROOT}/core/mproc/qmi/src/qcsi",
+   "${BUILD_ROOT}/core/mproc/qmi/src/common",
+   "${BUILD_ROOT}/qmimsgs/rfrpe/api",
+   "${BUILD_ROOT}/qmimsgs/common/api",
+   ])  
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+FRAMEWORK_SOURCES = [
+      '${BUILDPATH}/sns_sam_dsps.c',
+      '${BUILDPATH}/sns_sam_ext_dsps.c',
+      '${BUILDPATH}/sns_sam_dsps_tgt.c',
+   ]
+   
+if 'SNS_TEST_BUILD' in env:
+   FRAMEWORK_SOURCES += [
+   '${BUILDPATH}/sns_sam_test.c'
+   ]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   SAM_FW_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/sam/framework/src')
+	
+   # Add as binary library
+   samfw_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/sam_fw_dsps", FRAMEWORK_SOURCES)
+	
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+   SAM_FW_CLEAN_SOURCES)
+else:
+   samfw_lib = env.Library('${BUILDPATH}/sam_fw_dsps', FRAMEWORK_SOURCES)
+   env.AddLibsToImage(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   samfw_lib)

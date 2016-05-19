@@ -1,0 +1,35 @@
+ADD 
+MENU 
+( 
+  POPUP "[:CORRELATE]B&AM Tools" 
+  ( 
+    ADDHERE
+    REPLACE
+    MENUITEM "[:COMPOUND] &BamAnalyze GUI" 
+    (
+       cd.do &BAMSCRIPTSDIR\bamgui.cmm &BAMMSMID
+    )
+    REPLACE
+    POPUP "[:COMPOUND] &BamAnalyze CLI"
+    (
+      REPLACE
+      MENUITEM "[:FLASH]&Help" 
+      (         
+        cd.do &BAMSCRIPTSDIR\bamanalyze.cmm help
+      )
+      MENUITEM "[:FLASH]&List Bams" 
+      ( 
+        cd.do &BAMSCRIPTSDIR\bamanalyze.cmm listbams &BAMMSMID
+      )
+      MENUITEM "[:FLASH]Analyze &BAM" 
+      ( 
+        cd.do &BAMSCRIPTSDIR\bamanalyze.cmm bam &BAMMSMID
+      )
+      MENUITEM "[:FLASH]Analyze a &Pipe" 
+      ( 
+        cd.do &BAMSCRIPTSDIR\bamanalyze.cmm pipe &BAMMSMID
+      )    
+    )
+  )
+)
+

@@ -1,0 +1,290 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/dspbuild.adsp/2.5/bsp/devcfg_img/build/devcfg_img.scons#16 $
+#  $DateTime: 2014/11/04 20:55:53 $
+#  $Change: 6892538 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import os
+import re
+Import('env')
+
+env = env.Clone()
+env.Tool('QshrinkExe', toolpath = ['${BUILD_ROOT}/qdsp6/tools'])
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = [
+   'devcfg_img', 'adsp_images','adsp_mpd_images', 'adsp_mpd_core_images', 'adsp_core_images',
+   'msm8974_MPD', 'mdm9x25_MPD', 'msm8x26_MPD', 'msm8x10_MPD', 'apq8084_MPD', 'msm8962_MPD', 'mpq8092_MPD',
+   'mdm9x35_MPD', 'msm8992_MPD', 'msm8994_MPD', 'msm8996_MPD'
+]
+
+build_tools = ['buildspec_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/gendevcfghdr.py',
+         '${BUILD_ROOT}/core/bsp/build/scripts/elfmergerutil.py',                       
+         '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_lcs_builder.py',
+         ]
+
+# init environment variables
+output_elf_name = 'M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}'
+env.InitImageVars(
+   alias_list=aliases,        # aliases
+   proc='qdsp6',              # proc
+   config='adsp',         # config type, proc_name
+   plat='qurt',
+   target= output_elf_name,   # target (elf, image file name)
+   build_tags = ['DAL_DEVCFG_IMG'],
+   tools = build_tools
+)
+
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Setting up export paths for access to elfparserutil.py
+#------------------------------------------------------------------------------
+corebsp_scripts_path = env.RealPath('${BUILD_ROOT}/core/bsp/build/scripts/')
+sys.path.append(corebsp_scripts_path)
+
+#------------------------------------------------------------------------------
+# Print banner
+#------------------------------------------------------------------------------
+env.PrintImageBanner()
+
+#---------------------------------------------------------------------------
+# Now that we know we need to build something, the first thing we need
+# to do is add our image to BuildProducts.txt, so that tools can verify
+# when our build is successful.  Make sure we append, so that we don't
+# overwrite other images that have written to this file.
+#---------------------------------------------------------------------------
+#build_products_fn = env['TARGET_ROOT'] + "/BuildProducts.txt"
+#if not env.GetOption('clean'):
+#   fh = open(build_products_fn, "a")
+#   fh.write ("./modem_proc/build/ms/bin/" + env['QC_SHORT_BUILDPATH'] + "/dsp2.mbn\n")
+#   fh.close()
+#else:
+#   if os.path.exists(build_products_fn):
+#      os.remove(build_products_fn)
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = 'yes') 
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+  
+#Add ADSP Image specific linker inputs here
+env.LoadToolScript('hexagon_adsp', toolpath = ['${BUILD_ROOT}/build'])
+   
+# Device config not using G0 flag, global definition for all components in hexagon_adsp.py
+if env.get('COMPILER') == 'gcc':
+   env.Replace(QDSP6_RELEASE_LIB_DIR="${QDSP6_RELEASE_DIR}/dinkumware/lib/${Q6VERSION}")
+else:  # LLVM path for the Q6 released library path
+   env.Replace(QDSP6_RELEASE_LIB_DIR="${QDSP6_RELEASE_DIR}/Tools/target/hexagon/lib/${Q6VERSION}")
+   
+if env.get('CHIPSET').startswith('mdm') or os.environ.get('BUILD_ACT')=='SIM':
+  env.AddUsesFlags('USES_PLATFORM_MINIMAL')
+#---------------------------------------------------------------------------
+# Load in the compiler options for the devcfg image
+#---------------------------------------------------------------------------
+# This ensures that there is no .sdata section created in the devcfg image
+env.Append(CFLAGS = "-fno-zero-initialized-in-bss ")
+
+#---------------------------------------------------------------------------
+# Libraries/Objects Section
+#---------------------------------------------------------------------------
+devcfgimg_libs = []
+devcfgimg_objs = []
+devcfg_units = []
+
+primary_elf = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_NODEVCFG.elf')
+devcfg_build_dest_name = '${SHORT_BUILDPATH}/DEVCFG_${BUILD_ASIC}${BUILD_ID}${BUILD_VER}'
+devcfg_elf_name = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_DEVCFG.elf')
+devcfg_lcs_template_file = env.RealPath('${BUILD_MS_ROOT}/DEVCFG_IMG.lcs.template')
+devcfg_lcs_name = 'DEVCFG_IMG.lcs'
+devcfg_lcs_file_path_name = env.RealPath('${BUILD_MS_ROOT}/DEVCFG_IMG.lcs')
+merged_elf_name = env.RealPath('${SHORT_BUILDPATH}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}.elf')
+qshrink_elf_name = env.RealPath('${SHORT_BUILDPATH}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_QSHRINK.elf')
+merged_elf_name_output = env.RealPath('${BUILD_MS_ROOT}/' + output_elf_name + '.elf')
+devcfg_hdr_file_name = 'devcfg_def.h'
+devcfg_hdr_file = env.RealPath('${BUILD_MS_ROOT}/' + devcfg_hdr_file_name)
+
+# Template to load au_name libs/objs build rules.
+#au_name_path = env.RealPath('${BUILD_ROOT}/au_name')
+#if env.PathExists(au_name_path):
+   #au_name_items = env.LoadAreaSoftwareUnits('au_name')
+   #ourimg_libs.extend(au_name_items['LIBS'])
+   #ourimg_objs.extend(au_name_items['OBJS'])
+
+# load Core BSP libs/objs build rules.
+core_path = env.RealPath('${BUILD_ROOT}/core')
+if env.PathExists(core_path):
+   au_items = env.LoadAreaSoftwareUnits('core')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+# load AVS libs/objs build rules.
+avs_path = env.RealPath('${BUILD_ROOT}/avs')
+if env.PathExists(avs_path):
+   au_items = env.LoadAreaSoftwareUnits('avs')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+# load qdsp6 libs/objs build rules.
+qdsp6_path = env.RealPath('${BUILD_ROOT}/qdsp6')
+if env.PathExists(qdsp6_path):
+   au_items = env.LoadAreaSoftwareUnits('qdsp6')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+platform_path = env.RealPath('${BUILD_ROOT}/platform')
+if env.PathExists(platform_path):
+   au_items = env.LoadAreaSoftwareUnits('platform')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+if env.get('CHIPSET') != "msm8996":
+   sensor_path = env.RealPath('${BUILD_ROOT}/Sensors')
+   if env.PathExists(sensor_path):
+      au_items = env.LoadAreaSoftwareUnits('Sensors')
+      devcfgimg_libs.extend(au_items['LIBS'])
+      devcfgimg_objs.extend(au_items['OBJS'])
+
+
+devcfg_units = [devcfgimg_libs, devcfgimg_objs]
+
+#------------------------------------------------------------------------------
+# Rule for compiling devcfg_main.c 
+#------------------------------------------------------------------------------
+# filter is not define or filter is current target files only, ok to build misc files
+filter_opt = env.get('FILTER_OPT')
+if (filter_opt is None) or (env.FilterMatch(os.getcwd())):
+   env.VariantDir("${BUILDPATH}", "${BUILD_ROOT}/build/bsp/devcfg_img/src", duplicate=0)
+   env.RequirePublicApi(['DAL'])
+   env.RequireRestrictedApi(['DAL'])
+   #Add devcfg_main as an object in the devcfg image 
+   devcfg_main_obj = env.Object('${BUILDPATH}/devcfg_main.c')
+   env.Depends(devcfg_main_obj, primary_elf)
+   devcfgimg_objs.extend(devcfg_main_obj)
+
+   #=========================================================================
+   # Beging building DEVCFG Image
+   #-------------------------------------------------------------------------
+   # # Create the devcfg linker script
+   devcfg_lcs_file = env.DevcfgLCSBuilder(devcfg_lcs_name, devcfg_lcs_template_file, DEVCFG_DEF_HDR_FILE = devcfg_hdr_file_name)
+   env.Depends(devcfg_lcs_file, devcfg_lcs_template_file)
+   env.Depends(devcfg_lcs_file, (env.Value(env.get('DEVCFG_ENV_USED_XML_TAGS'))))
+   install_devcfg_lcs_file = env.InstallAs(devcfg_lcs_file_path_name, devcfg_lcs_file)
+   #devcfg_units.extend(devcfg_lcs_file_path_name)
+   env.AddArtifact('DAL_DEVCFG_IMG', install_devcfg_lcs_file)
+
+
+
+   # Create the devcfg_def hdr file that contains the segment addrs from the primary elf. This 
+   # will be the address at which the devcfg elf data segments will be built at
+   # Collect the segment name and the addr variable that was constructed when creating 
+   # the devcfg lcs file: build\ms\DEVCFG_IMG.lcs.
+   devcfg_scl_hdr_file = env.GenerateDevCfgHdrs(devcfg_hdr_file_name, [primary_elf])
+   env.Depends(devcfg_scl_hdr_file, primary_elf)
+   env.Depends(devcfg_scl_hdr_file, devcfg_lcs_file_path_name)
+   install_devcfg_hdr_file = env.InstallAs(devcfg_hdr_file, devcfg_scl_hdr_file)
+   devcfg_units.extend(install_devcfg_hdr_file)
+
+# the following steps can only be performed if there is no filters in effect
+if filter_opt is None:
+   libs_path = env['INSTALL_LIBPATH']
+   # create list of files used during link.
+
+   #Preprocess the LCS (linker script) file
+   pp_lcs = env.PreProcess(devcfg_lcs_file_path_name + '.pp', devcfg_lcs_file_path_name)
+   #Cleanup the Preprocessed LCS file
+   pp_lcs_clean = env.PreProcessClean(devcfg_lcs_file_path_name + '.i', pp_lcs)
+   
+   #Setup the bare minimum linker commands
+   if os.environ.get('COMPILER', '') == 'gcc':
+      env.Replace(LINKFLAGS = "-m${Q6VERSION} -nostdlib --section-start .start=0x0 --entry=0x0 ${LFLAGS}")
+   else:  # LLVM linker command
+      env.Replace(LINKFLAGS = "-m${Q6VERSION} -nostdlib --entry=0x0 ${LFLAGS}")
+   env.Append(LINKFLAGS = '-T' + str(pp_lcs_clean[0]))
+   env.Replace(LINKOBJGRP = "--start-group $_LIBFLAGS_POSIX  $SOURCES.posix --end-group ")
+   env.Replace(DYNLINKFLAGS = "")
+   #Invoke the build command
+   devcfg_elf = env.Program(devcfg_build_dest_name, 
+                              source=[devcfgimg_objs], 
+                              LIBS=[devcfgimg_libs], 
+                              LIBPATH=libs_path)
+
+   install_devcfg_elf = env.InstallAs(devcfg_elf_name, devcfg_elf)
+
+   devcfg_map = env.SideEffect(env.subst(devcfg_build_dest_name + '.map'), devcfg_elf)
+   devcfg_sym = env.SideEffect(env.subst(devcfg_build_dest_name + '.sym'), devcfg_elf)
+   env.Clean(devcfg_elf, devcfg_map)
+   env.Clean(devcfg_elf, devcfg_sym)
+   
+   env.Depends(pp_lcs_clean, devcfg_lcs_file_path_name)
+   env.Depends(devcfg_elf, pp_lcs_clean)
+   env.Depends(devcfg_elf, primary_elf)
+
+   #-------------------------------------------------------------------------
+   # Install ELF, reloc files
+   #-------------------------------------------------------------------------
+   # Merge elfs here
+   # for MultiPD, corebsp standalone link with virtual address, and call scripts build from qurt to do the relocation; if follow the same steps to call qurt script, ADSP could not relocation here with hexagon-objcopy
+
+   elfmergeout = env.ElfMergerUtilBuilder(merged_elf_name, [primary_elf, devcfg_elf_name], 
+                     PRIMARY_SECTION_NAME=[], SECONDARY_SECTION_NAME=[])
+
+
+   env.Depends(elfmergeout, (env.Value(env.get('SECTION_NAME_HDR_LIST'))))
+   env.Depends(elfmergeout, devcfg_lcs_file)
+   env.Depends(elfmergeout, install_devcfg_elf) 
+   # If Qshrink feature is enabled, run qshrink on merged elf 
+   if 'USES_FEATURE_QSHRINK_ENABLED' in env:
+      elf_QshrinkNode = env.QShrinkBuilder(qshrink_elf_name,elfmergeout)   
+      install_merged_elf = env.InstallAs(merged_elf_name_output, elf_QshrinkNode)
+   else:
+      install_merged_elf = env.InstallAs(merged_elf_name_output, elfmergeout)
+ 
+   #=========================================================================
+   # Define targets needed DEVCFGIMG
+   #=========================================================================
+   devcfg_units += [
+      install_devcfg_elf,
+      elfmergeout,
+      install_merged_elf,
+   ]
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, devcfg_units)
+   

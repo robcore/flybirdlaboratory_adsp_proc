@@ -1,0 +1,80 @@
+// Authored by smcewan.  2013/04/09 2:30 PM
+// Loads the ADSP ELF, and the symbols.  Reprograms the menu bar.
+// Ends at main().
+
+// Attach to the ADSP T32 session.
+sys.m.a
+
+// Load the initialized SMEM.
+d.load.binary smem.bin 0x06A00000 /noclear /nosymbol
+
+wait.4s
+
+// Prompt the user for the ADSP .ELF file.  
+PRINT "Point to the ADSP .elf file."
+DIALOG.FILE *.elf
+ENTRY &ELFILE
+
+// Prompt the user for the ADSP .PBN file.  
+PRINT "Point to the ADSP .pbn file."
+DIALOG.FILE *.pbn
+ENTRY &PBNFILE
+
+// Parse the .ELF path into different variables, that we will use.
+&DEVCFG_ELF=STRING.CUT("&ELFILE",-4)+"_DEVCFG.elf"
+&ADSP_BUILDMSDIR=OS.FILE.PATH(&ELFILE)
+&ADSP_COREDIR="&ADSP_BUILDMSDIR\..\..\core"
+&ADSP_BUILDROOT="&ADSP_BUILDMSDIR\..\..\.."
+
+// Load the main .PBN file.
+D.LOAD.ELF &PBNFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT/adsp_proc" /nosymbol
+// Load the main .ELF file source code.
+D.LOAD.ELF &ELFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT/adsp_proc" /nocode
+b.s PrngML_getdata_lite
+g
+wait.120s
+b.s main
+
+
+// Program the T32 to apply the QURT menus.
+task.config &ADSP_COREDIR\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.t32
+menu.rp &ADSP_COREDIR\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.men
+// Configure the MMU.
+mmu.off
+mmu.tlb.scan
+mmu.on
+
+d.l
+b.l
+
+// Set required breakpoints.
+V g_prng_config_enable = 0x1
+V that_rpm_guy_is_crazy = 0x1
+V g_sleepAllowLowPowerModes = 0x0
+D.S 0xFC4A1000 0x1
+// This is the GFMUX
+D.S D:0xFE200020 %LE %LONG 0x00000302
+D.S D:0xFE200034 %LE %LONG 0x0000140B
+
+b.s QURTK_handle_error /p
+b.s QURTK_tlb_crash /p
+b.s QURTK_error /p
+b.s err_fatal_handler /p
+
+// Turn on AHB bus for spm_init().  Provided by David Fellows.
+D.S D:0xFC4011C8 %LE %LONG 0x20008001
+D.S D:0xFC4011C0 %LE %LONG 0x00004FF1
+D.S D:0xFC4011C4 %LE %LONG 0x00004FF1
+D.S D:0xFE022004 %LE %LONG 0x00000001
+D.S D:0xFE022000 %LE %LONG 0x00000FF1
+
+b.dis PrngML_getdata_lite
+// Run to main()
+go
+
+// Prompt the user for the SENSOR .ELF file.  
+PRINT "Point to the SENSOR .elf file."
+DIALOG.FILE *SENSOR.elf
+ENTRY &SNSELFILE
+D.LOAD.ELF &SNSELFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT/adsp_proc" /nocode /noclear
+V pfnRNG[1] = pfnRNG[2]

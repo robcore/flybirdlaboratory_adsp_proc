@@ -1,0 +1,21 @@
+Starting Qshrink
+ELF File: Z:\b\adsp_proc\build\bsp\devcfg_img\build\AAAAAAAA\M8994AAAAAAAAQ1234.elf
+Output File: Z:\b\adsp_proc\build\bsp\devcfg_img\build\AAAAAAAA\M8994AAAAAAAAQ1234_QSHRINK.elf
+Hash File: ../../qdsp6/qshrink/src/msg_hash.txt
+Log File: ../../qdsp6/qshrink/src/qsr_.txt_.log
+Replacement Mode
+Finished Copying ( 0.0765779654854 seconds)
+Done Scanning Symbol Table ( 1.1832712754 seconds) 
+Total Struct Matches: 14292 
+
+Shrinking QSR_STRING section in output ...
+Linker generated IMAGE END Addr changed in elf_offset  0x21414L from  0xf11bf300L to 0xf10d0300L
+Total Unique Struct Matches: 14292
+Total New Hashed Strings: 0
+Total Strings Replaced by Hashes: 12137
+Total Moved Strings in QSR_STR section: 2155
+Total Anomalies processed : 0
+Total Strings in Master Hash File: 459862
+Qshrink Version : 2
+Total Time: 9.41136979142
+Qshrink completed 

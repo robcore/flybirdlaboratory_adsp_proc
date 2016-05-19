@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CPU VDD Sleep Low Power Resource/Mode definitions
+
+  Copyright (c) 2012-2013 QUALCOMM Technologies Incorporated.
+  All Rights Reserved.
+  Qualcomm Confidential and Proprietary
+
+-->
+
+<!--
+Format of Enter/Exit/Backoff latency fields:
+"<Fixed>,<Scaled>"
+Fixed - Unscaled value that is always added to each frequency table entry
+Scaled - Value that will be scaled at 1:1 ratio according to frequency table entries
+         and the initial base profile frequency given via ProfileFreq
+
+
+Bitwise attribute values (see sleep_mode_attribute enum for full description):
+  0x01 - No reference count
+  0x02 - No function lock
+  0x04 - No latency optimization
+  0x08 - No automatic latency tracking
+-->
+
+<LPRDefinition> 
+  <LPR Name="cpu_vdd" CoreMask="0xFFFFFFFF" InitFn="cpu_vdd_lpr_init" ProfileFreq="245760">
+   <Mode
+      Name="pc_l2_noret"
+      Dependency="l2.l2_noret"
+      Order="LAST"
+      PowerSavings="0,900"
+      EnterLat="7600"
+      ExitLat="5500"
+      EnterFn="cpu_vdd_pc_no_retention_enter"
+      ExitFn="cpu_vdd_pc_exit"
+      Backoff="5500"
+      Attributes="8"
+      >
+    </Mode>
+    <Mode
+      Name="pc_l2_ret" 
+      Dependency="l2.l2_ret"
+      Order="LAST"
+      PowerSavings="0,900"
+      EnterLat="2982"
+      ExitLat="3780"
+      EnterFn="cpu_vdd_pc_retention_enter"
+      ExitFn="cpu_vdd_pc_exit"
+      Backoff="3780"
+      Attributes="8"
+      >
+    </Mode>
+  </LPR>
+  
+  <LPR Name="l2" CoreMask="0xFFFFFFFF" InitFn="l2_cache_init" ProfileFreq="245760">
+    <Mode
+      Name="l2_noret"
+      Dependency="cpu_vdd.pc_l2_noret + cxo.shutdown"
+      Order="BEFORE DEP l2.l2_noret"
+      PowerSavings="-21289950, 35"
+      EnterLat="738"
+      ExitLat="1480"
+      EnterFn="l2_no_retention_enter"
+      ExitFn="l2_no_retention_exit"
+      Backoff="1480"
+      >
+    </Mode>
+    <Mode
+      Name="l2_ret" 
+      Dependency="cpu_vdd.pc_l2_ret"
+      Order="BEFORE DEP l2.l2_ret"
+      PowerSavings="-14402280, 34"
+      EnterLat="726"
+      ExitLat="480"
+      EnterFn="l2_retention_enter"
+      ExitFn="l2_retention_exit"
+      Backoff="480"
+      >
+    </Mode>
+  </LPR>
+</LPRDefinition>

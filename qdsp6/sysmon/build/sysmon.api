@@ -1,0 +1,30 @@
+#===============================================================================
+#
+# ADSP System Monitor
+#
+# GENERAL DESCRIPTION
+#    API script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accessible internal or external to QDSP6
+#-------------------------------------------------------------------------------   
+env.PublishPublicApi('ADSP_SYSMON',[
+	'${INC_ROOT}/qdsp6/sysmon/inc',
+	])
+	
+	
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accessible only within QDSP6
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('QDSP6',[
+	'${INC_ROOT}/qdsp6/sysmon/inc',
+	])

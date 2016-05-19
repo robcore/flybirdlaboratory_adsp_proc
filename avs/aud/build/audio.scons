@@ -1,0 +1,53 @@
+#===============================================================================
+#
+# AVS AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+#env.Append(CFLAGS = '-Werror')
+
+env.PublishProtectedApi('AVS',[
+   '${AVS_ROOT}/aud/services/dynamic_svcs/audio_proc_svc/inc',
+   '${AVS_ROOT}/aud/services/static_svcs/audio_dev_mgr/inc',
+   '${AVS_ROOT}/aud/services/static_svcs/audio_stream_mgr/inc',
+   '${AVS_ROOT}/aud/services/static_svcs/utils/avsync_mgr/inc',
+   ])
+
+
+
+if 'USES_DEVCFG' in env:
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    if 'GEN_SHARED_LIBS' in env:
+       env.AddDevCfgInfo(DEVCFG_IMG, 
+       {
+         'soc_xml'    : ['${AVS_ROOT}/aud/common/config/dynamic_libraries.xml']
+       })
+    else:
+       env.AddDevCfgInfo(DEVCFG_IMG, 
+       {
+         'soc_xml'    : ['${AVS_ROOT}/aud/common/config/dynamic_libraries_stub.xml']
+       })
+
+env.LoadSoftwareUnits()

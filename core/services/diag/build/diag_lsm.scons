@@ -1,0 +1,163 @@
+#===============================================================================
+#
+# Diag Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/02/25 18:33:40 $
+#  $Author: sgownipa $
+#  $Change: 1194317 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#08/20/14     sl     Minor fix for Audio PD support
+#07/06/14     ph     Added support for Diag over STM
+#05/16/14     sm     Added TISE image support.  Note that 'USES_MSVC' and
+#                    'USES_TISE' are used to specify a subset of files from this
+#                    driver to compile for the Windows (MSVC) compiler.  Please
+#                    do not remove these definitions from this file.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# This is to remove any -Werror declarations in the environmnent for the MSVC
+# compiler.
+if 'USES_MSVC' in env:
+    env.Replace(CFLAGS="")
+    
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/diag"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# TISE requires some additional definitions.
+if 'USES_TISE' and 'USES_MSVC' in env:
+    env.Append(CPPDEFINES=['CUSTOMER_H'])
+    env.Append(CPPDEFINES=['DIAG_SIO_SUPPORT'])
+    env.Append(CPPDEFINES=['DIAG_SMDL_SUPPORT'])
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_DIAG']) 
+env.Append(CPPDEFINES=['FEATURE_DIAG_8K_QDSP6'])
+env.Append(CPPDEFINES=['FEATURE_ALIGNED_QWORD'])
+env.Append(CPPDEFINES=['MEMHEAP_ASSERT_NONE'])
+env.Append(CPPDEFINES=['DIAG_MP'])
+env.Append(CPPDEFINES=['FEATURE_SMD'])
+env.Append(CPPDEFINES=['IMAGE_APPS_PROC'])
+env.Append(CPPDEFINES=['DIAG_IMAGE_APPS_PROC'])
+env.Append(CPPDEFINES=['IMAGE_QDSP6_PROC'])
+env.Append(CPPDEFINES=['DIAG_IMAGE_QDSP6_PROC'])
+env.Append(CPPDEFINES=['DIAG_QDSP6_APPS_PROC'])
+env.Append(CPPDEFINES=['DIAG_C_STRING'])
+env.Append(CPPDEFINES=['DIAG_MP_SLAVE_LAST'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_TRACE_ON_BY_DEFAULT'])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# Set this flag to True to compile in Diag over STM support
+# If False, diag_stm.c file will not be compiled and the feature will be disabled
+diag_stm_support=True
+
+if diag_stm_support==True:
+   env.Append(CPPDEFINES=["FEATURE_DIAG_STM"])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DIAG_LSM_SOURCES = [
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM.c',
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM_Msg.c',
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM_Log.c',
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM_Event.c',
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM_Pkt.c',
+ '${BUILDPATH}/LSM/qurt/src/DiagSvc_Malloc.c',
+ '${BUILDPATH}/LSM/qurt/src/diagstub.c',
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM_Qdi_Wrapper.c',
+ '${BUILDPATH}/LSM/qurt/src/Diag_LSM_stm.c',
+ '${BUILDPATH}/LSM/f3_trace/src/Diag_LSM_F3_Trace.c'
+]
+diag_lsm_obj = env.Object(DIAG_LSM_SOURCES)
+diag_lsm_lib = env.Library('${BUILDPATH}/diag/lsm', diag_lsm_obj)
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+
+#env.AddLibsToImage([
+#   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 
+#   'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+#   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+#   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 
+#   'WCN_IMAGE'],
+#   diag_lsm_lib)
+ 
+if 'USES_SENSOR_IMG' in env:
+  env.AddLibsToImage(['CORE_QDSP6_SENSOR_SW'],diag_lsm_lib)
+
+if 'USES_AUDIO_IMG' in env:
+  env.AddLibsToImage(['CORE_QDSP6_AUDIO_SW'],diag_lsm_lib)
+
+if 'USES_SENSOR_IMG' in env:  
+   RCINIT_INIT_SENSORPD_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_0',          # required
+     'init_name'                  : 'diag',                    # required
+     'init_function'              : 'Diag_LSM_Init',           # required
+   }
+
+   if 'USES_RCINIT' in env:
+      env.AddRCInitFunc( 'CORE_QDSP6_SENSOR_SW', RCINIT_INIT_SENSORPD_INIT )
+
+if 'USES_AUDIO_IMG' in env:  
+   RCINIT_INIT_AUDIOPD_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_0',          # required
+     'init_name'                  : 'diag',                    # required
+     'init_function'              : 'Diag_LSM_Init',           # required
+   }
+
+   if 'USES_RCINIT' in env:
+      env.AddRCInitFunc( 'CORE_QDSP6_AUDIO_SW', RCINIT_INIT_AUDIOPD_INIT )
+
+# Adding the required sources to the TISE SCons Image
+if 'USES_TISE' in env:
+    DIAG_LSM_TISE_SOURCES = DIAG_LSM_SOURCES
+    DIAG_LSM_TISE_SOURCES.remove('${BUILDPATH}/LSM/qurt/src/Diag_LSM_Qdi_Wrapper.c')
+    env.AddLibrary(['CORE_TISE_SW'], '${BUILDPATH}/diag_lsm_tise', DIAG_LSM_TISE_SOURCES)

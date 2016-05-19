@@ -1,0 +1,272 @@
+#===============================================================================
+#
+# GPIO INTERRUPT CONTROLLER Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/systemdrivers/gpioint/main/latest/build/SConscript#1 $
+#  $DateTime: 2009/06/09 22:43:40 $
+#  $Author: aratin $
+#  
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/GPIOInt/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+  'CS_INC',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+if ('USES_SENSOR_IMG' in env) or ('USES_AUDIO_IMG' in env):
+  env.Append(CPPPATH = [
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/inc",
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/src/user",
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/config/user",
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/src/user/uimage",
+     "${INC_ROOT}/core/api/systemdrivers",
+  ])
+else:
+  env.Append(CPPPATH = [
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/inc",
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/src/kernel",
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/src/kernel/uimage",
+     "${INC_ROOT}/core/systemdrivers/GPIOInt/config/kernel",
+     "${INC_ROOT}/core/api/systemdrivers",
+  ])
+
+env.PublishPrivateApi('SYSTEMDRIVERS_GPIOINT', [
+   "${INC_ROOT}/core/systemdrivers/hal/gpioint/inc",
+])
+
+
+CBSP_API = [
+  'HAL',
+  'DAL',
+  'DEBUGTOOLS',
+  'MPROC',
+  'POWER',
+  'SERVICES',
+  'SYSTEMDRIVERS_8660',
+  'SYSTEMDRIVERS',
+  'KERNEL',
+]
+ 
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# turned off until we have mpm support.
+env.Append(CCFLAGS = " -DGPIOINT_USE_MPM")
+env.Append(CCFLAGS = " -DGPIOINT_USE_NPA")
+
+if env.get('CHIPSET') == "msm8994":
+ env.Append(CCFLAGS = " -DGPIOINT_USE_UGPIOINT")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+GPIO_INTERRUPT_KERNEL_SOURCES = [
+   '${BUILDPATH}/kernel/GPIOIntFwk.c',
+   '${BUILDPATH}/kernel/GPIOIntInfo.c',
+   '${BUILDPATH}/kernel/GPIOInt.c',
+   '${BUILDPATH}/kernel/GPIOIntQDI.c',
+]
+
+GPIO_INTERRUPT_USER_SOURCES = [
+   '${BUILDPATH}/user/GPIOIntUserFwk.c',
+   '${BUILDPATH}/user/GPIOIntUserInfo.c',
+   '${BUILDPATH}/user/GPIOIntUser.c',
+]
+if (env.get('CHIPSET') == "msm8994") and not (env.get('USES_AUDIO_IMG')):
+  GPIO_USERPD_UIMAGE = [
+   '${BUILDPATH}/user/uimage/uGPIOIntUser.c',
+  ]
+  GPIO_USERPD_UIMAGE_ISLAND = [
+   '${BUILDPATH}/user/uimage/uGPIOIntUserIsland.c',
+   '${BUILDPATH}/user/uimage/config/'+ env['CHIPSET'] + '/uGPIOIntConfigData.c',
+  ]
+else:
+  GPIO_USERPD_UIMAGE = [
+   '${BUILDPATH}/user/uimage/uGPIOIntUserStub.c',
+  ]
+
+if env.get('CHIPSET') == "msm8994":
+  GPIO_GUESTOS_UIMAGE = [
+   '${BUILDPATH}/kernel/uimage/uGPIOIntKernel.c',
+   '${BUILDPATH}/kernel/uimage/uGPIOIntQDI.c',
+  ]
+  GPIO_GUESTOS_UIMAGE_ISLAND = [
+   '${BUILDPATH}/kernel/uimage/uGPIOIntKernelIsland.c',
+  ]
+else:
+  GPIO_GUESTOS_UIMAGE = [
+   '${BUILDPATH}/kernel/uimage/uGPIOIntKernelStub.c',
+  ]
+
+#-------------------------------------------------------------------------------
+# RCInit Dependencies
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  if ('USES_SENSOR_IMG' in env) or ('USES_AUDIO_IMG' in env):
+    RCINIT_IMG = ['CORE_QDSP6_SENSOR_SW', 'CORE_QDSP6_AUDIO_SW']
+    env.AddRCInitFunc(       # Code Fragment in TMC: NO
+    RCINIT_IMG,              # define TMC_RCINIT_INIT_GPIOINT_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',       # required
+      'init_name'                  : 'GPIOInt',              # required
+      'init_function'              : 'GPIOInt_Init',         # required
+      'dependencies'               : ['dalsys']
+    })
+  else:
+    RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+    env.AddRCInitFunc(       # Code Fragment in TMC: NO
+    RCINIT_IMG,              # define TMC_RCINIT_INIT_GPIOINT_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',       # required
+      'init_name'                  : 'GPIOInt',              # required
+      'init_function'              : 'GPIOInt_Init',         # required
+      'dependencies'               : ['dalsys','npa']
+    })
+    RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+    env.AddRCInitFunc(       # Code Fragment in TMC: NO
+    RCINIT_IMG,
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',         # required for QDI layer for the dals
+     'init_name'                  : 'GPIOIntQDI',             # required
+     'init_function'              : 'GPIOIntQDI_Init',        # required
+     'dependencies'               : ['GPIOInt']
+    })
+    if env.get('CHIPSET') == "msm8994":
+      RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+      env.AddRCInitFunc(       # Code Fragment in TMC: NO
+      RCINIT_IMG,
+      {
+       'sequence_group'             : 'RCINIT_GROUP_0',         # required for QDI layer between uGPIOInt
+       'init_name'                  : 'uGPIOIntQDI',             # required
+       'init_function'              : 'uGPIOIntQDI_Init',        # required
+       'dependencies'               : ['GPIOInt']
+      })
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+ugpiointuser_objs = env.Object(GPIO_USERPD_UIMAGE)
+ugpiointkernel_objs = env.Object(GPIO_GUESTOS_UIMAGE)
+
+ugpiointuser_lib = env.Library('${BUILDPATH}/GPIOInt/ugpioint/uGPIOIntuser', ugpiointuser_objs)
+ugpiointkernel_lib = env.Library('${BUILDPATH}/GPIOInt/ugpioint/uGPIOIntkernel', ugpiointkernel_objs)
+
+if 'USES_ISLAND' in env:
+   ugpiointuserisland_objs = env.Object(GPIO_USERPD_UIMAGE_ISLAND)
+   ugpiointkernelisland_objs = env.Object(GPIO_GUESTOS_UIMAGE_ISLAND)
+   ugpiointuserisland_lib = env.Library('${BUILDPATH}/GPIOInt/ugpioint/uGPIOIntuserisland', ugpiointuserisland_objs)
+   ugpiointkernelisland_lib = env.Library('${BUILDPATH}/GPIOInt/ugpioint/uGPIOIntkernelisland', ugpiointkernelisland_objs)
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], ugpiointuserisland_lib)
+   env.AddIslandLibrary(['CBSP_QDSP6_SW_IMAGE'], ugpiointkernelisland_lib)
+   env.AddLibsToImage(['CORE_QDSP6_SENSOR_SW'], ugpiointuserisland_lib)
+   env.AddLibsToImage(['CBSP_QDSP6_SW_IMAGE'], ugpiointkernelisland_lib)
+
+env.AddLibsToImage(['CORE_QDSP6_SENSOR_SW', 'CORE_QDSP6_AUDIO_SW'], ugpiointuser_lib)
+env.AddLibsToImage(['CBSP_QDSP6_SW_IMAGE'], ugpiointkernel_lib)
+
+
+env.AddLibrary(
+  ['MODEM_IMAGE',     'CBSP_MODEM_IMAGE',
+   'QDSP6_SW_IMAGE',  'CBSP_QDSP6_SW_IMAGE'],
+  '${BUILDPATH}/GPIOInt/kernel', GPIO_INTERRUPT_KERNEL_SOURCES)
+env.AddLibrary(
+  ['CORE_QDSP6_SENSOR_SW', 'CORE_QDSP6_AUDIO_SW'],
+  '${BUILDPATH}/GPIOInt/user', GPIO_INTERRUPT_USER_SOURCES)
+
+if 'USES_DEVCFG' in env:
+  if 'USES_SENSOR_IMG' in env:
+   DEVCFG_IMG_SENSORS = ['DEVCFG_CORE_QDSP6_SENSOR_SW']
+   env.AddDevCfgInfo(DEVCFG_IMG_SENSORS,
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8994_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/msm8994/GPIOInt.xml'],
+      '8996_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/msm8996/GPIOInt.xml'],
+      '9x25_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '9x35_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],					
+      '8x10_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8x26_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8962_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],					
+      '8092_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8094_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8084_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml']       
+   })
+  elif 'USES_AUDIO_IMG' in env:
+   DEVCFG_IMG_AUDIO = ['DEVCFG_CORE_QDSP6_AUDIO_SW']
+   env.AddDevCfgInfo(DEVCFG_IMG_AUDIO,
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8994_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/msm8994/GPIOInt.xml'],
+      '8996_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/msm8996/GPIOInt.xml'],
+      '9x25_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '9x35_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],					
+      '8x10_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8x26_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8962_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],					
+      '8092_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8094_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml'],
+      '8084_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/user/stub/GPIOInt.xml']       
+   })
+  else:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8974/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8974/GPIOInt_ConfigData.c'],
+      '8994_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8994/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8994/GPIOInt_ConfigData.c'],
+      '8996_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8996/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8996/GPIOInt_ConfigData.c'],
+      '9x25_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/mdm9x25/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/mdm9x25/GPIOInt_ConfigData.c'],
+      '9x35_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/mdm9x35/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/mdm9x35/GPIOInt_ConfigData.c'],					
+      '8x10_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8x10/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8x10/GPIOInt_ConfigData.c'],
+      '8x26_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8x26/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8x26/GPIOInt_ConfigData.c'],
+      '8962_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8962/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/msm8962/GPIOInt_ConfigData.c'],					
+      '8092_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/stub/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/stub/GPIOInt_ConfigData.c'],
+      '8094_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/stub/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/stub/GPIOInt_ConfigData.c',],
+      '8084_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/apq8084/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/kernel/apq8084/GPIOInt_ConfigData.c',]                     
+   })
+

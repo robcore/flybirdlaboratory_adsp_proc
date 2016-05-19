@@ -1,0 +1,78 @@
+#===============================================================================
+#
+# SAM Framework Algorithm Utilities
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/util/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CCFLAGS = " -O2 ")
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+env.RequireRestrictedApi(CBSP_API)
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+USAM_UTIL_SOURCES = [
+      '${BUILDPATH}/sns_sam_algo_utils.c',
+      '${BUILDPATH}/sns_buffer_uimg.c',
+      '${BUILDPATH}/sns_buffer.c',
+      '${BUILDPATH}/sns_sam_algo_gpio.c'
+   ]
+
+usam_util_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+                                    '${BUILDPATH}/sam_util',
+                                    USAM_UTIL_SOURCES)
+
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], usam_util_lib)
+
+# always clean sources
+USAM_UTIL_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT/Sensors/common/usam/util/src')
+
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # headers that should not be shared in HD22
+   USAM_UTIL_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/util/inc')
+
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], USAM_UTIL_CLEAN_SOURCES)

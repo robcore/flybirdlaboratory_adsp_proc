@@ -1,0 +1,29 @@
+<driver name="NULL">
+  <device id="/lpass/pm8084">
+    <props name="PAM_Node_Rsr" type=DALPROP_ATTR_TYPE_STRUCT_PTR> 
+      pm8084_npa_lpass_node_resources 
+    </props>
+    <props name="PAM_Num" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_num_of_pmic_lpass_nodes 
+    </props>
+    <props name="MX_Info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_MX_Info
+    </props>
+    <props name="CX_Info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_CX_Info
+    </props>
+    <props name="RemoteLDORsrc" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_npa_remote_ldo
+    </props>
+    <props name="RemoteVSRsrc" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_npa_remote_vs
+    </props>
+    <props name="RemoteSMPSRsrc" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_npa_remote_smps
+    </props>
+    <props name="ResourcePublishers" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      pm8084_npa_pub_type
+    </props>
+  </device>
+</driver>
+

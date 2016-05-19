@@ -1,0 +1,45 @@
+;****************************************************************
+;    filename: DSP_load_osam.cmm
+;
+; usage:
+;    DSP_load_osam
+; example:
+;    DSP_load_osam
+;****************************************************************
+
+global &Qube_va
+global &Qube_pa
+
+&Qube_va=address.offset(start);
+&Qube_pa=0x0bf00000
+
+
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+mmu.tlb.scan
+mmu.format Blast QURTK_pagetables &Qube_va--(&Qube_va+0xffffff) &Qube_pa
+mmu.on
+mmu.autoscan on
+mmu.tablewalk on
+
+; LOAD RTOS AWARENESS MODULE
+TASK.CONFIG .\core\kernel\qurt\install\MMv5\debugger\T32\qurt_model.t32
+MENU.ReProgram .\core\kernel\qurt\install\MMv5\debugger\T32\qurt_model.men
+
+
+; Enable RTOS debug messages
+;ext.debug 1
+
+
+y.spath.srd + .
+MENU.REPROGRAM .\core\systemdrivers\hwio\scripts\msm8x10\hwioreg.men
+path . + .\core\systemdrivers\hwio\scripts\msm8x10
+do hwio.cmm
+
+;temporary workaround for some power collapse issues, disable sleep
+V rcinit_info_sleep.entry = 0
+V that_rpm_guy_is_crazy = 1 
+v sleep_allow_low_power_modes = 0 
+
+end
+

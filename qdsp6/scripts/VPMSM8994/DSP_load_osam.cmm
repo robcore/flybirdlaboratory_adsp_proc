@@ -1,0 +1,33 @@
+;****************************************************************
+;    filename: DSP_load_osam.cmm
+;
+; usage:
+;    DSP_load_osam
+; example:
+;    DSP_load_osam
+;****************************************************************
+
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+mmu.tlb.scan
+mmu.format Blast QURTK_pagetables &Qube_va--(&Qube_va+0xffffff) &Qube_pa
+mmu.on
+mmu.autoscan on
+mmu.tablewalk on
+
+; LOAD RTOS AWARENESS MODULE
+TASK.CONFIG .\core\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.t32
+MENU.ReProgram .\core\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.men
+
+
+; Enable RTOS debug messages
+;ext.debug 1
+
+
+//y.spath.srd + .
+MENU.REPROGRAM .\core\systemdrivers\hwio\scripts\msm8994\hwioreg.men
+path . + .\core\systemdrivers\hwio\scripts\msm8994
+do hwio.cmm
+
+enddo
+

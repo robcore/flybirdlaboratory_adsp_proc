@@ -1,0 +1,14 @@
+##
+## Hexagon Access Program pack file
+## Contains rules for creating OpenDSP package
+## 
+
+beginPROD
+
+# run dsp command to create HK11
+
+beginEXE
+   cd .\adsp_proc && build\build.py -o pkg_hk11 | tee LOG_pack_hk11.txt
+endEXE
+
+endPROD

@@ -1,0 +1,43 @@
+<!-- This file gives the information about the available Qualcomm static modules.
+	 This file will be parsed by the Hexagaon IDE to show the list of available 
+	 Qualcomm static modules -->
+<!-- 
+#===============================================================================
+#
+# qualcomm_static_appi_modules.xml
+#
+# GENERAL DESCRIPTION
+#    This file will contain the information about the available Qualcomm static 
+#	 modules. This file will be parsed by the Hexagon IDE to show the list of 
+#	 available Qualcomm static APPI modules.
+#	 This file will also be parsed by custom_appi_integration.py script to 
+#	 integrate the selected Qualcomm static modules to Elite framework.
+#
+# NOTE
+#    No need to update this file.
+#
+# Copyright (c) 2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#===============================================================================
+-->
+
+<qualcomm_static_modules num_modules="2">
+    <module type="APPI">
+        <mod_id_name>AUDPROC_MODULE_ID_VOL_CTRL</mod_id_name>
+        <mod_id_value>0x00010BFE</mod_id_value>
+		<mod_appi_header_file>appi_softvolumecontrols.h</mod_appi_header_file>
+        <mod_get_size_f>appi_softvolumecontrols_getsize</mod_get_size_f>
+		<mod_init_f>appi_softvolumecontrols_init</mod_init_f>
+		<mod_kcps_value>1200</mod_kcps_value>
+    </module>
+    <module type="APPI">
+        <mod_id_name>AUDPROC_MODULE_ID_RESAMPLER</mod_id_name>
+        <mod_id_value>0x00010719</mod_id_value>
+		<mod_appi_header_file>appi_genericresampler24src.h</mod_appi_header_file>
+        <mod_get_size_f>appi_genericresampler24src_getsize</mod_get_size_f>
+		<mod_init_f>appi_genericresampler24src_init</mod_init_f>
+		<mod_kcps_value>5000</mod_kcps_value>
+    </module>
+</qualcomm_static_modules>

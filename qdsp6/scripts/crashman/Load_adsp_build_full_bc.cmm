@@ -1,0 +1,176 @@
+;****************************************************************
+; filename: Load_adsp_build_full_bc.cmm
+; This script is to load ADSP symbols and break at main() for live
+; debugging purposes
+; Author: Corin Chen
+;****************************************************************
+global &Qube_va
+global &Qube_pa
+
+
+TOOLBAR ON
+STATUSBAR ON
+;WINPAGE.RESET
+
+;******************************************************************
+; Reset QDSP6 through intercomm command
+;******************************************************************
+
+;----------------------------------------------------------------------------
+; Choose hex mode for input
+;----------------------------------------------------------------------------
+radix hex
+area
+area.select
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+sys.cpu HexagonV5
+;----------------------------------------------------------------------------
+; Set T32 properties
+;----------------------------------------------------------------------------
+SYMBOL.SOURCEPATH.RESET
+SYMBOL.SOURCEPATH.SETDIR
+
+MAP.RESET
+SYMBOL.ASMFRAME ON
+SYMBOL.CUTLINE 3
+SYMBOL.CASE OFF
+
+SYSTEM.OPTION.ICFLUSH ON 
+MAP.RESET
+MMU.OFF
+MMU.DELETE
+SYMBOL.SOURCEPATH.RESET
+
+// Attach to the ADSP T32 session.
+sys.mode.attach
+
+;----------------------------------------------------------------------------
+; Setup look and feel
+;----------------------------------------------------------------------------
+
+;----------------------------------------------------------------------------
+; Print banner
+;----------------------------------------------------------------------------
+print "8092 ADSP"
+title "8092 ADSP_QDSP6"
+
+print " "
+print " "
+print "PLEASE ENTER ADSP IMAGE START ADDRESS: (eg: 0x0DB00000)" 
+print " "
+print " "
+print " "
+enter &adspbaseadd 
+print " "
+print " "
+// set to default not enable sleep
+&sleep_enable=0
+print "Enable Sleep/Low power mode ? (Default not enabled)" 
+   print "Enter 0 to Not Enable \n\n"
+   print "Enter 1 to Enable\n\n"
+   print " "
+   enter &sleep_enable
+
+
+;----------------------------------------------------------------------------
+; Open the register set
+;----------------------------------------------------------------------------
+register /spotlight
+
+;----------------------------------------------------------------------------
+; Open the source listing
+;----------------------------------------------------------------------------
+data.list
+
+;----------------------------------------------------------------------------
+;Recall and Define History File
+;----------------------------------------------------------------------------
+autostore , history
+
+sYmbol.SourcePath.reset
+
+;----------------------------------------------------------------------------
+; load SMD structure	
+;----------------------------------------------------------------------------
+//print "loading SMD structure ......."
+//d.load.binary .\qdsp6\misc\smem_initialized_VPMPQ8092.bin eaxi:0x0fa00000 /noclear /nosymbol
+//print "SMD structure loaded. Done"
+
+//wait.4s
+;----------------------------------------------------------------------------
+; load DSP symbols
+;----------------------------------------------------------------------------
+print "loading Image symbols......."
+d.load.elf .\build\ms\M8092AAAAAAAAQ1234.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+    
+print "DSP Image symbols. Done"
+&Qube_va=address.offset(start);
+&Qube_pa=&adspbaseadd
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+b.s main /onchip
+go
+wait.4s
+
+
+;----------------------------------------------------------------------------
+; LOAD RTOS AWARENESS MODULE
+;----------------------------------------------------------------------------
+TASK.CONFIG .\core\kernel\qurt\install\ADSPv5MP\debugger\T32\qurt_model.t32
+MENU.ReProgram .\core\kernel\qurt\install\ADSPv5MP\debugger\T32\qurt_model.men
+
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+mmu.off
+mmu.tlb.scan
+//mmu.format Blast QURTK_pagetables &Qube_va--(&Qube_va+0xffffff) &Qube_pa
+mmu.on
+//mmu.autoscan on
+//mmu.tablewalk on
+
+;----------------------------------------------------------------------------
+; set variables
+;----------------------------------------------------------------------------
+v that_rpm_guy_is_crazy = 0x0
+v g_prng_config_enable = 1
+if &sleep_enable==1
+(
+    v sleep_allow_low_power_modes=1
+)
+else
+(
+    v sleep_allow_low_power_modes=0
+)
+;----------------------------------------------------------------------------
+; set breakpoints
+;----------------------------------------------------------------------------
+b.l
+
+b.s QURTK_handle_error /p
+b.s QURTK_tlb_crash /p
+b.s QURTK_error /p
+b.s err_fatal_handler /p
+b.s QURTK_fatal_error
+b.s QURTK_nonfatal_error
+b.s QURTK_handle_nmi
+
+
+// Manually sets the MPM for QTimers.
+//D.S 0xFC4A1000 0x1
+D.S D:0xFE200020 %LE %LONG 0x0000030E 
+D.S D:0xFE200034 %LE %LONG 0x0000140B
+
+;----------------------------------------------------------------------------
+; Load HW IO register menu
+;----------------------------------------------------------------------------
+MENU.REPROGRAM .\core\systemdrivers\hwio\scripts\mpq8092\hwioreg.men
+path . + .\core\systemdrivers\hwio\scripts\mpq8092
+do .\core\systemdrivers\hwio\scripts\mpq8092\hwio.cmm
+
+;----------------------------------------------------------------------------
+; Check timestamp and make sure the image matches the running binary
+;----------------------------------------------------------------------------
+do ./qdsp6/scripts/crashman/DSP_timestamp_check.cmm
+
+end

@@ -1,0 +1,137 @@
+//===============================================================================
+//
+// ADSP Standalone Loading Script
+//
+// GENERAL DESCRIPTION
+//    This is a generic loading script used to bring the ADSP subsystem out of
+//    reset, load appropriate symbols, and halt at the main() breakpoint.
+//
+// Copyright (c) 2009-2014 by QUALCOMM Technologies Incorporated.
+// All Rights Reserved.
+//
+//-------------------------------------------------------------------------------
+//
+//  $Header: //components/rel/dspcore.adsp/2.5/scripts/crashman/DSP_connect_8994_bkpt.cmm#3 $
+//  $DateTime: 2015/06/04 01:51:18 $
+//  $Change: 8282843 $
+//                      EDIT HISTORY FOR FILE
+//
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     what, where, why
+// --------   ---     ---------------------------------------------------------
+//
+//
+//===============================================================================
+
+// Attach to the ADSP T32 session.
+//sys.m.a
+
+mmu.tlb.scan
+mmu.on
+
+
+// Load the initialized SMEM.
+// Note:  You NEED to run this script using cd.do, and have the smem in your active directory!
+//d.load.binary smem.bin 0x06A00000 eaxi: /noclear /nosymbol
+//wait.4s
+
+// Prompt the user for the ADSP .ELF file.  
+PRINT "Point to the ADSP .elf file."
+DIALOG.FILE *.elf
+ENTRY &ELFILE
+
+// Prompt the user for the ADSP .PBN file.  
+//PRINT "Point to the ADSP .pbn file."
+//DIALOG.FILE *.pbn
+//ENTRY &PBNFILE
+
+Global &DEVCFG_ELF
+Global &SENSOR_ELF
+Global &ADSP_BUILDMSDIR
+Global &ADSP_COREDIR
+Global &ADSP_BUILDROOT
+
+// Parse the .ELF path into different variables, that we will use.
+&DEVCFG_ELF=STRING.CUT("&ELFILE",-4)+"_DEVCFG.elf"
+&SENSOR_ELF=STRING.CUT("&ELFILE",-4)+"_SENSOR.elf"
+&ADSP_BUILDMSDIR=OS.FILE.PATH(&ELFILE)
+&ADSP_COREDIR="&ADSP_BUILDMSDIR\..\..\core"
+&ADSP_BUILDROOT="&ADSP_BUILDMSDIR\..\..\.."
+
+// Load the main .PBN file.
+//D.LOAD.ELF &PBNFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT" /nosymbol
+// Load the main .ELF file source code.
+D.LOAD.ELF &ELFILE /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT" /nocode /noclear /noreg
+
+b.s main
+go 
+wait !run()
+
+
+// Program the T32 to apply the QURT menus.
+task.config &ADSP_COREDIR\kernel\qurt\build\adsp_link\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.t32
+menu.rp &ADSP_COREDIR\kernel\qurt\build\adsp_link\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.men
+
+// Configure the MMU.
+trans.off
+trans.reset
+mmu.format TLB
+trans.tablewalk.on
+trans.autoenable 
+
+d.l
+b.l
+
+// Set required breakpoints.
+//V g_prng_config_enable = 0x1
+//V that_rpm_guy_is_crazy = 0x1
+//V g_sleepAllowLowPowerModes = 0x0
+
+// Breakpoint required for diag_init().
+//D.S 0xFC4A1000 0x1
+
+// Disable clock gating.
+//D.S D:0xFE200034 %LE %LONG 0x0000140B
+
+// Set kernel breakpoints.
+b.s QURTK_handle_error /p
+b.s QURTK_tlb_crash /p
+b.s QURTK_error /p
+b.s err_fatal_handler /p
+b.s QURTK_handle_nmi /program /soft
+b.s QURTK_handle_nmi_local /program /soft
+
+// This is the GFMUX
+//D.S D:0xFE200020 %LE %LONG 0x00000302
+
+
+
+// Disable this breakpoint.
+//b.dis PrngML_getdata_lite
+
+// Run to main()
+//pstep
+//go
+//WAIT !STATE.RUN()
+
+// Temporary workaround to use Prng_Lite instead of PRNG, to work around the deadlock
+//V pfnRNG[1] = pfnRNG[2]
+
+// Load the Sensor .ELF file source code.
+D.LOAD.ELF &SENSOR_ELF /strippart "adsp_proc" /sourcepath "&ADSP_BUILDROOT" /nocode /noclear /noreg
+
+
+cd &ADSP_BUILDROOT
+
+//MENU.REPROGRAM .\core\systemdrivers\hwio\scripts\msm8994\hwioreg.men
+//path . + .\core\systemdrivers\hwio\scripts\msm8994
+//do .\core\systemdrivers\hwio\scripts\msm8994\hwio.cmm
+
+
+//area
+//do do qdsp6\scripts\crashman\DSP_timestamp_check.cmm
+
+
+

@@ -1,0 +1,63 @@
+<!-- 
+#===============================================================================
+#
+# custom_static_appi_modules.xml
+#
+# GENERAL DESCRIPTION
+#    This file will contain the custom APPI module information. If an APPI module 
+#	 need to be integrated with Elite framework then this file need to be updated
+#	 with that APPI module information.
+#
+# USAGE
+#    1) Integration using command line
+#		If an APPI module need to be integrated using command line then this xml 
+#		file should be updated manually.
+#
+#    2) Integration using Hexagon IDE
+#		If an APPI module need to be integrated using IDE then need to specify the
+#		module details using GUI provided by IDE. IDE will update this xml file 
+#		automatically.
+#
+# Copyright (c) 2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#===============================================================================
+-->
+
+<!--<static_modules num_modules="Specify the number of modules that are going to add into AMDB">
+		<module type="specify the current module type ie. APPI or CAPI">
+			<mod_id_name>Specify the module ID name in upper case or lower case</mod_id_name>
+			<mod_id_value>Specify the module ID value</mod_id_value>
+			<mod_appi_header_file>Specify the name of the module APPI header file name</mod_appi_header_file>
+			<mod_get_size_f>Specify the module get size API name</mod_get_size_f>
+			<mod_init_f>Specify the module init API name</mod_init_f>
+			<mod_kcps_value>Specify the value of module KCPS</mod_kcps_value>
+		</module>
+	</static_modules> -->
+
+<!-- Example Module Information for Gain APPI Module -->
+<!--<static_modules num_modules="2">
+		<module type="APPI">
+			<mod_id_name>AUDPROC_MODULE_ID_GAIN_CTRL</mod_id_name>
+			<mod_id_value>0x10010080</mod_id_value>
+			<mod_appi_header_file>appi_gain_ctrl.h</mod_appi_header_file>
+			<mod_get_size_f>appi_gain_ctrl_getsize</mod_get_size_f>
+			<mod_init_f>appi_gain_ctrl_init</mod_init_f>
+			<mod_kcps_value>1000</mod_kcps_value>
+		</module>
+		<module type="APPI">
+			<mod_id_name>AUDPROC_MODULE_ID_BUF</mod_id_name>
+			<mod_id_value>0x10010085</mod_id_value>
+			<mod_appi_header_file>appi_buf.h</mod_appi_header_file>
+			<mod_get_size_f>appi_buf_getsize</mod_get_size_f>
+			<mod_init_f>appi_buf_init</mod_init_f>
+			<mod_kcps_value>1000</mod_kcps_value>
+		</module>
+	</static_modules> -->
+
+<!-- Note: Donot change the tag names inside elements
+	 If any wrong tag name is used then custom_appi_integration.py script will return an ERROR -->
+
+<static_modules num_modules="0">
+</static_modules>

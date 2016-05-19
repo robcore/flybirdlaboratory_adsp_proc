@@ -1,0 +1,6 @@
+#include "AEEStdDef.idl"
+
+interface adspmsgd_rpc {
+  long init(in long heapid, in uint32 ion_flags, in uint32 filter, in uint32 buf_size, rout long buff_addr);
+  //no de-init call is necessary.  we cant trust the hlos to make that call anyways
+};

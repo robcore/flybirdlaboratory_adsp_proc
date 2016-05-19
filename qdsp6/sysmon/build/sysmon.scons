@@ -1,0 +1,70 @@
+#===============================================================================
+#
+# ADSP System Monitor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+
+Import('env')
+
+# Core API 
+#  KERNEL for qube.h used by qurt_elite.h and qurt.h
+#  SERVICES for msg.h and msgcfg.h
+#  DEBUGTOOLS for err.h
+
+core_public_apis = [
+   'KERNEL',
+   'SERVICES',
+   'DEBUGTOOLS',
+   'ADSPPM',
+   'POWER',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'DEBUGTRACE',
+   'DAL',
+   'DIAG',
+   ]
+
+platform_public_apis = [
+   'PLATFORM_LIBS',
+   'MOD_TABLE',
+   'QAIC',
+   'STDDEF',
+   'REMOTE',
+   ]
+
+env.PublishPrivateApi('ADSP_SYSMON',[
+    '../inc',
+   ])   
+
+env.RequirePublicApi(platform_public_apis, area='platform')
+env.RequirePublicApi(core_public_apis, area='core')
+env.RequireRestrictedApi('QDSP6')
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/qdsp6/sysmon/src"
+LIBNAME = 'adsp_sysmon'
+
+env.PublishPrivateApi('ADSP_SYSMON', "${BUILD_ROOT}/qdsp6/sysmon/build")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+if 'USES_ADSP_SYSMON' in env:
+   SRC = [
+           '${BUILDPATH}/sysmon_prof.c',
+           env.QaicSkelFromIdl("sysmon"),
+         ]
+   env.AddBinaryLibrary(['QDSP6_SW_IMAGE'], '${BUILDPATH}/'+LIBNAME, [SRC])
+   env.CleanPack(['QDSP6_SW_IMAGE'], ['${BUILD_ROOT}/qdsp6/sysmon/src', 
+                    '${BUILD_ROOT}/qdsp6/sysmon/inc/sysmon_prof_int.h', 
+                     '${BUILD_ROOT}/qdsp6/sysmon/inc/sysmon_pmu_def.h'])
+
+

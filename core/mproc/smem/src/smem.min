@@ -1,0 +1,68 @@
+#============================================================================
+#  Name:
+#    smem.min..Branched from lib_smem.min
+#
+# Copyright (c) 2008-2009 by QUALCOMM, Incorporated.  All Rights Reserved.
+#----------------------------------------------------------------------------
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/core.adsp/2.6.1/mproc/smem/src/smem.min#1 $
+#
+# when       who     what, where, why
+# -------    ---     --------------------------------------------------------
+# 11/09/09   rr      Add support for smem_ext,merge from 04.01
+# 06/11/09   tl      Override CPU architecture for ARMv7 spinlocks on 7x30 Apps
+# 11/10/08   tl      Override CPU architecture for ARMv7 spinlocks on 8k Apps
+# 08/25/08   bfc     Readded smem.min
+#============================================================================
+# use the appropriate smem_proc_comm.c file
+ifeq ($(USES_APPS_PROC),yes)
+SMEM_SOURCES=\
+        smem.c \
+        smem_ext.c \
+        smem_diag.c \
+        smsm.c\
+        smsm_target.c \
+        smsm_rex.c \
+        spinlock.c
+else
+SMEM_SOURCES=\
+        smem.c \
+        smem_diag.c \
+        smem_ext.c \
+        smem_ext_pc.c \
+        smem_pcmod.c \
+        smem_pcil_tmp.c \
+        smsm.c\
+        smsm_target.c\
+        smsm_rex.c\
+  spinlock.c
+endif
+
+SMEM_A_SOURCES=\
+  spinlock_asm.s
+
+SMEM_LOG_SOURCES=\
+        smem_log.c
+
+# Override the armasm CPU architecture for the 7x30 and 8k Apps processor so we
+# assemble the Scorpion (ARMv7) spinlocks instead of the ARM9/ARM11 (ARMv5)
+# spinlocks.
+ifeq ($(USES_APPS_PROC),yes)
+    ifeq ($(findstring 8650, $(ASIC)), 8650)
+        $(TARGETDIR)/spinlock_asm.o:  CPU = --cpu 6T2
+    endif
+    ifeq ($(findstring 7630, $(ASIC)), 7630)
+        $(TARGETDIR)/spinlock_asm.o:  CPU = --cpu 6T2
+    endif
+endif
+
+SMEM_OBJS :=  $(addprefix $(TARGETDIR)/, $(SMEM_SOURCES:%.c=%.o)) \
+              $(addprefix $(TARGETDIR)/, $(SMEM_A_SOURCES:%.s=%.o))
+SMEM_LOG_OBJS :=  $(addprefix $(TARGETDIR)/, $(SMEM_LOG_SOURCES:%.c=%.o))
+vpath %.c $(SMEM)
+vpath %.s $(SMEM)
+
+AFLAGS += -i $(SMEM)

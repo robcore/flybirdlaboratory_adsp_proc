@@ -1,0 +1,18 @@
+<image_cfg>
+  <!-- Devcfg Environment Variables -->
+  <devcfg_info>
+    <!-- These tags have to be comman separated. They can be on a single or multiple lines. -->
+    <!-- Do not have the comments within devcfg_xml_tag tag -->
+    <!--  TCSR_SOC_HW_VERSION : 0xFD4A8000, refer ipcat for Badger family -->
+    <devcfg_xml_tag_multiple_configs>
+      8974_xml, 8974_PLATFORM_CDP_xml, 8974_PLATFORM_MTP_MSM_xml, 8974_PLATFORM_QRD_xml, 
+      8x26_xml, 8x26_PLATFORM_CDP_xml, 8x26_PLATFORM_MTP_MSM_xml, 8x26_PLATFORM_QRD_xml
+    </devcfg_xml_tag_multiple_configs>
+    <tcsr_soc_hw_version_addr>
+      0xFD4A8000
+    </tcsr_soc_hw_version_addr>
+    <soc_hw_version>
+       8974_xml : 0, 8974_xml : 8, 8x26_xml : 2, 8x26_xml : 4
+    </soc_hw_version>
+  </devcfg_info>
+</image_cfg>

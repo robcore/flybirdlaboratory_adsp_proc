@@ -1,0 +1,58 @@
+;****************************************************************
+;    filename: DSP_load_osam.cmm
+;
+; usage:
+;    DSP_load_osam
+; example:
+;    DSP_load_osam
+;****************************************************************
+
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+trans.off
+trans.reset
+mmu.format QuRT d.l(QURTK_pagetables) &Qube_va--(&Qube_va+0xffff000) &Qube_pa
+trans.tablewalk.on
+trans.on
+
+; OLD MMU SCRIPTS
+;mmu.tlb.scan
+;mmu.format Blast QURTK_pagetables &Qube_va--(&Qube_va+0xffffff) &Qube_pa
+;mmu.on
+;mmu.autoscan on
+;mmu.tablewalk on
+
+
+; LOAD RTOS AWARENESS MODULE
+TASK.CONFIG .\core\kernel\qurt\install\MMv5\debugger\T32\qurt_model.t32
+MENU.ReProgram .\core\kernel\qurt\install\MMv5\debugger\T32\qurt_model.men
+
+
+; Enable RTOS debug messages
+;ext.debug 1
+
+
+y.spath.srd + .
+MENU.REPROGRAM .\core\systemdrivers\hwio\scripts\msm8974\hwioreg.men
+path . + .\core\systemdrivers\hwio\scripts\msm8974
+do hwio.cmm
+
+;temporary workaround for some power collapse issues, disable sleep
+V rcinit_info_sleep.entry = 0
+
+// Set required breakpoints.
+V that_rpm_guy_is_crazy = 0x1
+V sleep_allow_low_power_modes = 0x0
+D.S 0xFC4A1000 0x1
+; D.S D:0xFE200020 %LE %LONG 0x0000030E 
+
+
+
+b.s QURTK_handle_error /p
+b.s QURTK_tlb_crash /p
+b.s QURTK_error /p
+b.s err_fatal_handler /p
+
+
+end
+

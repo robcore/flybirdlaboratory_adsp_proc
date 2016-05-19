@@ -1,0 +1,89 @@
+
+TOOLBAR ON
+STATUSBAR ON
+
+ENTRY
+
+print " "
+print "PLEASE ENTERT Memory dump START ADDRESS: (eg: 0x00000000 / 0xc800000)" 
+print " "
+print " "
+print " "
+print " "
+enter &dumpaddr 
+
+print "PLEASE ENTER THE PATH INCLUDING THE RAMDUMP FILE NAME" 
+print " "
+print " "
+enter &dump
+
+&CRASHMAN_DIR=OS.FILE.PATH(.)
+&ADSP_DIR="&CRASHMAN_DIR\..\..\..\.."
+
+global &dump
+global &dumpaddr
+global &ADSP_DIR
+global &TCM_BASE
+
+&TCM_BASE=0xfe400000
+
+print "Dump is &dump;"
+print "dump start address is : &dumpaddr"
+print "reference build is : &ADSP_DIR"
+
+sys.down
+sys.cpu HexagonV56
+sys.up
+d.load.binary &dump a:&dumpaddr
+d.load.elf &ADSP_DIR\build\ms\M8994AAAAAAAAQ1234.elf /nocode /noclear /noreg
+d.load.elf &ADSP_DIR\build\ms\M8994AAAAAAAAQ1234_Sensor.elf /nocode /noclear /noreg
+
+trans.off
+trans.reset
+mmu.format QURT d.l(QURTK_pagetables) 0xf0100000--0xf1500000 0xc800000
+trans.tablewalk.on
+trans.autoenable
+trans.on
+&pagetable=d.l(QURTK_pagetables)
+print "Page table address = &pagetable"
+d.dump \\M8994AAAAAAAAQ1234\Global\start 
+d.dump a:&dumpaddr
+task.config &ADSP_DIR\core\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.t32
+menu.rp &ADSP_DIR\core\kernel\qurt\build\core_libs\qdsp6\AAAAAAAA\install\ADSPv56MP\debugger\T32\qurt_model.men
+area
+mmu.create 0xF0000000--0xF0010000 0xFE400000
+// turn on mmu
+PER.Set REG:0x12 %Long 0x9
+
+cd &ADSP_DIR
+do qdsp6\scripts\crashman\DSP_timestamp_check.cmm
+
+
+DATA.COPY y.range(qurt_tcm_dump) a:&TCM_BASE
+mmu.create 0xf0000000--0xf0080000 &TCM_BASE
+
+// write task.pgt out
+printer.file &OutputPath_temp\DSP_pgt.txt
+printer.filetype ASCII 
+printer.size 0xfa, 0xfa
+wp.task.pgt
+
+// remove forced mmu
+mmu.delete 0xf0000000--0xf0080000
+
+do qdsp6\scripts\crashman\DSP_load_pagetables_8994.cmm &OutputPath
+
+area.select Crashman
+print "Processing analy_qurt_error.cmm Script"
+printer.file &OutputPath_temp\Crashman_Log.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area.view Crashman
+do core\kernel\qurt\scripts\analy_qurt_error.cmm
+WINclear TOP
+area.select Crashman
+print "Processing analy_qurt_error.cmm Script.Done"
+printer.file &OutputPath_temp\Crashman_Log.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area.view Crashman

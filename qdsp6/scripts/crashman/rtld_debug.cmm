@@ -1,0 +1,64 @@
+entry &OutputPath
+LOCAL &dynamic_so_count
+LOCAL &dynamic_so_string
+LOCAL &Linkedlist_l_next
+LOCAL &Linkedlist_l_addr1
+LOCAL &printstring
+LOCAL &Dynamic_obj_option
+LOCAL &dynamicobjpath
+LOCAL &Load_using_script
+ENTRY &HeapVar &OpDir
+
+&dynamic_so_count=0
+&dynamic_so_string=""
+&Linkedlist_l_next=0
+&Linkedlist_l_addr1=0
+&printstring=""
+&Dynamic_obj_option=1.0
+&Load_using_script=0
+
+Area.Create DYN 200. 1000.       ;create an AREA window              
+WINPOS 50% 0. 50% 103% 0. 0. DYN
+Area.Select DYN                  ;select the AREA window as PRACTICE 
+                                ;input/output window                
+Area DYN                         ;display the AREA window   
+
+if (!Y.EXIST("_rtld_debug"))
+(
+   print %ERROR "_rtld_debug variable is not found in the build. Exiting the script."
+   enddo
+)
+
+&Linkedlist_l_next=V.VALUE((*((_rtld_debug).r_map)).l_next)
+
+if (&Linkedlist_l_next==0)
+(
+  print " No Dynamic objects loaded using fastrpc"
+  enddo
+)
+
+;pause;
+print " DYNAMIC OBJECTS LOADED: ";
+print " ";
+printer.file &OutputPath_temp\soaddress.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area DYN
+OPEN #1 "&OutputPath_temp\soaddress.txt" /WRITE
+while (&Linkedlist_l_next!=0)
+(
+
+	&dynamic_so_count=&dynamic_so_count+1
+	&Linkedlist_l_addr=V.VALUE((*(((struct link_map *)&Linkedlist_l_next))).l_addr)
+	&Linkedlist_l_name_full=V.STRING((*(((struct link_map *)&Linkedlist_l_next))).l_name)
+	&Linkedlist_l_name=string.cut("&Linkedlist_l_name_full", 0xa)
+
+	print " Start address: &Linkedlist_l_addr, Obj Name: &Linkedlist_l_name "  
+	; print "Command to load symbols -  d.load.elf  <Unstripped symbol file of &Linkedlist_l_name > &Linkedlist_l_addr /nocode /noclear ";
+
+	&Linkedlist_l_next=V.VALUE((*(((struct link_map *)&Linkedlist_l_next))).l_next)
+    WRITE #1 " Start address: &Linkedlist_l_addr, Obj Name: &Linkedlist_l_name "
+)
+CLOSE #1
+enddo
+

@@ -1,0 +1,174 @@
+<driver name="Clock">
+  
+   <device id=DALDEVICEID_CLOCK>
+   
+      <!-- Clock sources -->
+      <props name="ClockSources" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        SourceConfig
+      </props>
+
+      <props name="IsRemotable" type=DALPROP_ATTR_TYPE_UINT32>
+      	0x1
+      </props>
+
+      <!-- LPASS Clocks -->
+      <props name="audio_core_ixfabric_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        AHBClockConfig
+      </props>
+      <props name="audio_core_lpaif_pri_osr_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFOSRClockConfig
+      </props>
+      <props name="audio_core_lpaif_sec_osr_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFOSRClockConfig
+      </props>
+      <props name="audio_core_lpaif_ter_osr_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFOSRClockConfig
+      </props>
+      <props name="audio_core_lpaif_quad_osr_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFOSRClockConfig
+      </props>
+      <props name="audio_core_lpaif_codec_spkr_osr_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFOSRClockConfig
+      </props>
+      <props name="audio_core_lpaif_pcm0_ibit_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFPCMClockConfig
+      </props>
+      <props name="audio_core_lpaif_pcm1_ibit_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFPCMClockConfig
+      </props>
+      <props name="audio_core_lpaif_pcmoe_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        LPAIFOSRClockConfig
+      </props>
+      <props name="audio_core_midi_core_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        MIDIClockConfig
+      </props>
+      <props name="audio_core_resampler_core_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ResamplerClockConfig
+      </props>
+      <props name="audio_core_slimbus_core_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        SlimbusClockConfig
+      </props>
+
+      <!-- BLSP1 QUP I2C Clocks -->
+      <props name="gcc_blsp1_qup1_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPI2CClockConfig
+      </props>
+      <props name="gcc_blsp1_qup2_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp1_qup3_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp1_qup4_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp1_qup5_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp1_qup6_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPI2CClockConfig
+      </props>
+
+      <!-- BLSP2 QUP I2C Clocks -->
+      <props name="gcc_blsp2_qup1_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+      </props>
+      <props name="gcc_blsp2_qup2_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp2_qup3_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp2_qup4_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp2_qup5_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         QUPI2CClockConfig
+       </props>
+      <props name="gcc_blsp2_qup6_i2c_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPI2CClockConfig
+      </props>
+      <!-- QUP SPI Clocks -->
+      <props name="gcc_blsp1_qup1_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp1_qup2_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp1_qup3_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp1_qup4_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp1_qup5_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp1_qup6_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+
+      <props name="gcc_blsp2_qup1_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp2_qup2_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp2_qup3_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp2_qup4_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp2_qup5_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+      <props name="gcc_blsp2_qup6_spi_apps_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        QUPSPIClockConfig
+      </props>
+
+
+      <!-- Clock Log Defaults -->
+      <props name="ClockLogDefaults" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockLogDefaultConfig
+      </props>
+
+      <!-- Clock Init Flags -->
+      <props name="ClockInitFlags" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockFlagInitConfig
+      </props>
+
+      <!-- CX Init VRegLevel -->
+      <props name="CXVRegInitLevel" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        CXVRegInitLevelConfig
+      </props>
+
+      <!-- Clock LDO Initialization -->
+      <props name="ClockLDOData" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockLDODataConfig
+      </props>
+
+
+      <!-- CPU Initialization -->
+      <props name="ClockImageConfig" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        Clock_ImageConfig
+      </props>
+      <props name="NPARemoteNodeSupport" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockNPARemoteNodeSupport
+      </props>
+      <props name="ClockLDOBase" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockLDOHWIOBases
+      </props>
+      <props name="ClockSecBase" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockSECHWIOBases
+      </props>
+      <!-- Resource Publishing Requirements -->
+      <props name="ClockResourcePub" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockResourcePub
+      </props>
+      <props name="ClockSourcesToInit" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        ClockSourcesToInit
+      </props>
+
+   </device>
+</driver>

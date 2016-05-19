@@ -1,0 +1,100 @@
+# vi: tw=128 ts=3 sw=3 et
+# @file dog.scons
+# @brief This file contains the API details for the Dog Services, API 2.0
+#===============================================================================
+# NOTE: The @brief description above does not appear in the PDF.
+# The tms_mainpage.dox file contains the group/module descriptions that
+# are displayed in the output PDF generated using Doxygen and LaTeX. To
+# edit or update any of the group/module text in the PDF, edit the
+# tms_mainpage.dox file or contact Tech Pubs.
+#===============================================================================
+#===============================================================================
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary.
+#===============================================================================
+#===============================================================================
+# Edit History
+# $Header: //components/rel/core.adsp/2.6.1/debugtools/dog/build/dog_hal.scons#4 $
+# $DateTime: 2014/12/22 14:16:52 $
+# $Change: 7184280 $
+# $Author: pwbldsvc $
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+env.VariantDir('${BUILDPATH}', '../src', duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External Dependency
+#-------------------------------------------------------------------------------
+
+#env.RequireExternalApi([
+#   'XYZ',
+#])
+
+#-------------------------------------------------------------------------------
+# Internal Dependency
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+   'DAL',
+   'TMS',
+   'DEBUGTOOLS', # alias to TMS
+   'DEBUGTRACE',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'KERNEL', # needs to be last (also contains wrong comdef.h)
+])
+
+env.RequireRestrictedApi([
+   'TMS_RESTRICTED',
+   'DEBUGTOOLS', # alias to TMS
+])
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+# Associated Directly with Libraries
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+#env.AddLibrary(['CORE_ROOT_PD'], # Domain(Root)
+#   '${BUILDPATH}/dog_hal_void',
+#   [
+#      '${BUILDPATH}/dog_hal_void.c',
+#   ])
+
+env.AddLibrary(['CORE_QDSP6_SW'], # Domain(Root + Audio)
+   '${BUILDPATH}/dog_hal_lpass',
+   [
+      '${BUILDPATH}/dog_hal_8994_lpass.c',
+   ])
+
+#env.AddLibrary(['CORE_MODEM', 'MODEM_MODEM',], # Domain(Root + Modem)
+#   '${BUILDPATH}/dog_hal_mpss',
+#   [
+#      '${BUILDPATH}/dog_hal_8974_mpss.c',
+#   ])
+
+if 'USES_RCINIT' in env:
+
+   env.AddRCInitFunc(
+      [ 'CORE_ROOT_PD', 'CORE_QDSP6_SW', 'CORE_MODEM', 'MODEM_MODEM',],
+      {
+         'sequence_group'             : 'RCINIT_GROUP_0',
+         'init_name'                  : 'dog_hal_root',
+         'init_function'              : 'HAL_dogInit',
+         'dependencies'               : [ 'dalsys', 'smp2p', 'smem' ],
+      })
+
+

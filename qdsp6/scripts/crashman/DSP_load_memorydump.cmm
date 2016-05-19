@@ -1,0 +1,163 @@
+;****************************************************************
+; filename: DSP_timestamp_check.cmm
+;
+;****************************************************************
+LOCAL &ramdumppath &smddumppath &f3logpath &ulogpath &otherinfo
+entry &choice 
+
+TOOLBAR ON
+STATUSBAR ON
+
+ENTRY
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+;sys.cpu HexagonV5H
+;sys.up
+
+pwd
+cd ../../../
+pwd
+
+print " "
+print "Enter the choice number. DO YOU HAVE THE RAM DUMP FOR SMD?" 
+print " "
+print " "
+print "1.  Yes"
+print "2.  No"
+print " "
+print " "
+enter &choice
+
+
+print "PLEASE ENTER THE PATH INCLUDING THE RAMDUMP FILE NAME" 
+print " "
+print " "
+enter &ramdumppath
+
+win.title "&ramdumppath"
+if &choice==1
+(
+print "PLEASE ENTER THE PATH INCLUDING THE SMD RAMDUMP FILE NAME" 
+print " "
+print " "
+enter &smddumppath
+)
+
+Area.Select "output"
+AREA.view "output"
+if &choice==1
+(
+do qdsp6\scripts\crashman\DSP_connect_memdump.cmm &ramdumppath 0xdc00000 0xdc00000 &smddumppath 0xfa00000
+)
+else
+(
+do qdsp6\scripts\crashman\DSP_connect_memdump.cmm &ramdumppath 0xdc00000 0xdc00000
+)
+
+win.title "&ramdumppath"
+area.select Crashman
+print "Processing analy_qurt_error.cmm Script"
+printer.file &OutputPath\Crashman_Log.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area.view Crashman
+do \core\kernel\qurt\scripts\analy_qurt_error.cmm
+WINclear TOP
+area.select Crashman
+print "Processing analy_qurt_error.cmm Script. Done"
+printer.file &OutputPath\Crashman_Log.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.area.view Crashman
+win.title "&ramdumppath"
+
+
+do qdsp6\scripts\crashman\DSP_load_pagetables.cmm &OutputPath
+win.title "&ramdumppath"
+
+Area.Select "output"
+AREA.view "output"
+
+&choice=0
+
+print " "
+print "Enter the choice number. Do you need F3 log?" 
+print " "
+print " "
+print "1.  Yes"
+print "2.  No"
+print " "
+print " "
+enter &choice
+
+if &choice==1
+(
+print "PLEASE ENTER THE PATH YOU WANT TO STORE THE F3 LOG" 
+print " "
+print " "
+enter &f3logpath
+do recover_f3.cmm &f3logpath
+)
+
+Area.Select "output"
+AREA.view "output"
+&choice=0
+
+print " "
+print "Enter the choice number. Do you need U-log?" 
+print " "
+print " "
+print "1.  Yes"
+print "2.  No"
+print " "
+print " "
+enter &choice
+
+if &choice==1
+(
+print "PLEASE ENTER THE PATH YOU WANT TO STORE THE U-LOG" 
+print " "
+print " "
+enter &ulogpath
+do core\power\ulog\scripts\ULogDump.cmm &ulogpath
+)
+
+Area.Select "output"
+AREA.view "output"
+
+&choice=0
+
+print " "
+print "Enter the choice number. Do you want more information?" 
+print " "
+print " "
+print "1.  Yes"
+print "2.  No"
+print " "
+print " "
+enter &choice
+
+if &choice==1
+(
+print "PLEASE ENTER THE PATH YOU WANT TO STORE THE INFO" 
+print " "
+print " "
+enter &otherinfo
+
+do qdsp6\scripts\crashman\DSP_dump_info.cmm &otherinfo
+
+print " "
+print " "
+print "Information is saved in the location"
+print " "
+print " "
+
+)
+
+print " "
+print " "
+print "DONE"
+print " "
+print " "

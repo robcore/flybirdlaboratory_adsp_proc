@@ -1,0 +1,212 @@
+#===============================================================================
+#
+# Diag Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/02/25 18:33:40 $
+#  $Author: sgownipa $
+#  $Change: 1194317 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#07/06/14   ph      Added support for Diag over STM
+#05/16/14   sm      Added TISE image support.  Note that 'USES_MSVC' and
+#                    'USES_TISE' are used to specify a subset of files from this
+#                    driver to compile for the Windows (MSVC) compiler.  Please
+#                    do not remove these definitions from this file.
+#10/21/13    ph     OSAL APIs updated use ATS timers.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# This is to remove any -Werror declarations in the environmnent for the MSVC
+# compiler.
+if 'USES_MSVC' in env:
+    env.Replace(CFLAGS= '-Dinline="__inline"')
+    env.Append(CPPDEFINES = [
+    'CUST_H=custaaaaaaaaq.h'
+    '__FILENAME__=__FILE__',
+    'WIN32',
+    ])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/diag/"
+
+if not env.PathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/services/diag"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# TISE requires some additional definitions.
+if 'USES_TISE' and 'USES_MSVC' in env:
+    env.Append(CPPDEFINES=['CUSTOMER_H'])
+    env.Append(CPPDEFINES=['DIAG_SIO_SUPPORT'])
+    env.Append(CPPDEFINES=['DIAG_SMDL_SUPPORT'])
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_DIAG']) 
+env.Append(CPPDEFINES=['FEATURE_DIAG_8K_QDSP6'])
+env.Append(CPPDEFINES=['FEATURE_ALIGNED_QWORD'])
+env.Append(CPPDEFINES=['FEATURE_DSM_QUBE'])
+env.Append(CPPDEFINES=['MEMHEAP_ASSERT_NONE'])
+env.Append(CPPDEFINES=['FEATURE_USB_DIAG'])
+env.Append(CPPDEFINES=['FEATURE_SIO_USB_COMPOSITE'])
+env.Append(CPPDEFINES=['DIAG_MP'])
+env.Append(CPPDEFINES=['FEATURE_DIAG_MP_MASTER_MODEM'])
+env.Append(CPPDEFINES=['FEATURE_SMD'])
+env.Append(CPPDEFINES=['IMAGE_APPS_PROC'])
+env.Append(CPPDEFINES=['DIAG_IMAGE_APPS_PROC'])
+env.Append(CPPDEFINES=['IMAGE_QDSP6_PROC'])
+env.Append(CPPDEFINES=['DIAG_IMAGE_QDSP6_PROC'])
+env.Append(CPPDEFINES=['DIAG_QDSP6_APPS_PROC'])
+env.Append(CPPDEFINES=['FEATURE_DSM_CHK_NO_FILL_AA'])
+env.Append(CPPDEFINES=['FEATURE_DSM_MEM_CHK'])
+env.Append(CPPDEFINES=['FEATURE_NO_REX'])
+
+env.Append(CPPDEFINES=['SLEEP_DIAG_OKTS_SIG'])
+env.Append(CPPDEFINES=['FEATURE_ERR_HAS_F3_TRACE'])
+env.Append(CPPDEFINES=['FEATURE_ERR_F3_TRACE_STANDALONE'])
+env.Append(CPPDEFINES=['FEATURE_ERR_EXTENDED_STORE'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_TRACE_EXTENDED'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_DEBUG_TRACE'])
+env.Append(CPPDEFINES=['FEATURE_SAVE_TRACE_ON_BY_DEFAULT'])
+env.Append(CPPDEFINES=['DIAG_CENTRAL_ROUTING'])
+env.Append(CPPDEFINES=['DIAG_SMD_SUPPORT'])
+env.Append(CPPDEFINES=['DIAG_SMDL_SUPPORT'])
+env.Append(CPPDEFINES=['SIO_PORT_ONDEVICE_DIAG_USB_AUTO'])
+env.Append(CPPDEFINES=['DIAG_C_STRING'])
+env.Append(CPPDEFINES=['DIAG_MP_SLAVE_LAST'])
+env.Append(CPPDEFINES=['DIAG_MMPM_SUPPORT'])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+# Set this flag to True to compile in Diag over STM support
+# If False, diag_stm.c file will not be compiled and the feature will be disabled
+diag_stm_support=True
+
+if diag_stm_support==True:
+   env.Append(CPPDEFINES=["FEATURE_DIAG_STM"])
+
+#temp for dev testing
+#  env.Append(CPPDEFINES=["FEATURE_DIAG_STRESS_PROFILE"])
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+DIAG_SOURCES = [
+    '${BUILDPATH}/DCM/rtos/src/log_api.c',
+    '${BUILDPATH}/DCM/rtos/src/diagpkt.c',
+    '${BUILDPATH}/DCM/rtos/src/event_api.c',
+    '${BUILDPATH}/DCM/rtos/src/msg_api.c',
+    '${BUILDPATH}/DCM/common/src/diag.c',
+    '${BUILDPATH}/DCM/common/src/diagbuf.c',
+    '${BUILDPATH}/DCM/common/src/diagdiag_common.c',
+    '${BUILDPATH}/DCM/common/src/diaglog.c',
+    '${BUILDPATH}/DCM/common/src/msg.c',
+    '${BUILDPATH}/DCM/common/src/event.c',
+    '${BUILDPATH}/DCM/common/src/feature.c',
+    '${BUILDPATH}/DCM/common/src/diagmm.c',
+    '${BUILDPATH}/DCM/common/src/diagdsm.c',
+    '${BUILDPATH}/DCM/common/src/diagcomm_sio.c',
+    '${BUILDPATH}/DCM/common/src/diagcomm_smd.c',
+    '${BUILDPATH}/DCM/common/src/diagcomm_io.c',
+    '${BUILDPATH}/DCM/common/src/diagcomm_io_smdl.c',
+    '${BUILDPATH}/DCM/common/src/diagcomm_ctrl.c',
+    '${BUILDPATH}/DCM/common/src/diag_mode.c',	
+    '${BUILDPATH}/platform/adsp/src/diagstub.c',
+    '${BUILDPATH}/platform/adsp/src/diagtask.c',
+    '${BUILDPATH}/platform/adsp/src/diagstartup.c', 
+    '${BUILDPATH}/platform/adsp/src/diag_qdi.c',
+    '${BUILDPATH}/platform/adsp/src/diagMmpm.c',
+ 
+   ]
+
+if diag_stm_support==True:
+      DIAG_SOURCES += [
+         '${BUILDPATH}/DCM/common/src/diag_stm.c'
+    ]
+
+diag_obj = env.Object(DIAG_SOURCES)
+diag_lib = env.Library('${BUILDPATH}/diag', diag_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage([
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 
+   'WCN_IMAGE'],
+   diag_lib)
+
+# Adding the required sources to the TISE SCons Image
+if 'USES_TISE' in env:
+   DIAG_SOURCES_TISE = DIAG_SOURCES
+   DIAG_SOURCES_TISE.remove('${BUILDPATH}/platform/adsp/src/diag_qdi.c')
+   DIAG_SOURCES_TISE.remove('${BUILDPATH}/platform/adsp/src/diagMmpm.c')
+   env.AddLibrary(['CORE_TISE_SW'], '${BUILDPATH}/diag_tise', DIAG_SOURCES_TISE)
+
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_DIAG_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',           # required
+  'init_name'                  : 'diag',                     # required
+  'init_function'              : 'diag_startup',             # required
+  'dependencies'               : ['timer_client','smd','osal']
+}
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   # SMD INIT
+   env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_DIAG_INIT )
+
+
+
+#--------------------------------------------------------------------------------
+# Enable this to remove compile optimizations (for debugging)
+# DO NOT leave enabled when checking in file
+#--------------------------------------------------------------------------------
+#env.Replace(HEXAGONCC_OPT = "-O0")

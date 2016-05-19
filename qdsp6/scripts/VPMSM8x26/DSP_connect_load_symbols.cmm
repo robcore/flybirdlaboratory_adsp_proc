@@ -1,0 +1,122 @@
+;****************************************************************
+; filename: DSP_connect_loadDSP.cmm
+; 	this script is utilized to connect to VPMSM8974, load SMD data structure and load DSP image
+; please enter
+;	1. the Port ID : used to connect VPMSM8974	
+;	   required
+;	2. SMD FLAG :  used to indicate to load share memory data structure
+;	   optional, default value is not loading SMD
+; usage:
+; 	DSP_connect_loadDSP <Port number> <SMD>
+; example:
+; 	DSP_connect_loadDSP 5000 SMD
+; 	DSP_connect_loadDSP 5001
+;****************************************************************
+
+entry &p_Port_ID &SMD_flag
+global &Qube_va
+global &Qube_pa
+print "You have entered &p_Port_ID as Port ID to connect VPM8974"
+
+TOOLBAR ON
+STATUSBAR ON
+;WINPAGE.RESET
+
+;******************************************************************
+; Reset QDSP6 through intercomm command
+;******************************************************************
+
+;----------------------------------------------------------------------------
+; Choose hex mode for input
+;----------------------------------------------------------------------------
+radix hex
+area
+area.select
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+sys.cpu HexagonV5L
+;----------------------------------------------------------------------------
+; Attach to the Virtio simulation
+;----------------------------------------------------------------------------
+sys.mcdconfig arch=v5l port=&p_Port_ID simargs=""
+sys.mode.attach
+
+;----------------------------------------------------------------------------
+; Setup look and feel
+;----------------------------------------------------------------------------
+
+;----------------------------------------------------------------------------
+; Print banner
+;----------------------------------------------------------------------------
+print "VPMSM8974: LPASS"
+title "VPMSM8974: LPASS_QDSP6"
+;----------------------------------------------------------------------------
+; Open the register set
+;----------------------------------------------------------------------------
+register /spotlight
+
+;----------------------------------------------------------------------------
+; Open the source listing
+;----------------------------------------------------------------------------
+data.list
+
+;----------------------------------------------------------------------------
+;Recall and Define History File
+;----------------------------------------------------------------------------
+autostore , history
+
+sYmbol.SourcePath.reset
+
+;----------------------------------------------------------------------------
+; load SMD structure	
+;----------------------------------------------------------------------------
+if "&SMD_flag"=="SMD"
+(
+	print "loading SMD structure ......."
+	d.load.binary .\qdsp6\misc\smem_initialized_VPMSM8974.bin 0x0fa00000 /noclear /nosymbol
+	print "SMD structure loaded. Done"
+)
+;----------------------------------------------------------------------------
+; load DSP Image
+;----------------------------------------------------------------------------
+print "loading DSP Image ......."
+d.load.elf .\build\ms\M8x26AAAAAAAAQ1234.elf /NOCODE /NOREG
+;d.load.elf .\build\ms\M8x26AAAAAAAAQ0002.elf /NOCODE /NOREG
+print "DSP Image loaded. Done"
+&Qube_va=address.offset(start);
+&Qube_pa=0x0dc00000
+print "DSP address vritual=0x" &Qube_va " physical=0x" &Qube_pa
+
+;----------------------------------------------------------------------------
+; set breakpoints
+;----------------------------------------------------------------------------
+b.s main /onchip
+b.s QURTK_tlb_crash
+b.s QURTK_fatal_error
+b.s QURTK_nonfatal_error
+b.s QURTK_handle_error
+
+D.S D:&Qube_pa+0x30 %LE %LONG 1
+D.S D:&Qube_pa+0x34 %LE %LONG 1
+D.S D:&Qube_pa+0x38 %LE %LONG 1
+
+;TERM.METHOD ANGEL QURTK_handle_trap0
+;b.s QURTK_handle_trap0 /onchip
+; This is where your printf messages will be displayed
+;term.gate
+
+r.s PC 0x0dc00000
+v sleep_allow_low_power_modes = 0
+go
+
+wait !run()
+
+do .\qdsp6\scripts\VPMSM8x26\DSP_load_osam.cmm
+
+// Setup MMU and then Set ADSP-standalone config flag for bypassing RPM communication
+v that_rpm_guy_is_crazy = 0x1
+
+end
+

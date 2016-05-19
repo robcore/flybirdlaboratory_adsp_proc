@@ -1,0 +1,76 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-STM Library.
+#
+# Copyright (c) 2009-2012 Qualcomm Technologies Incorporated.
+# All rights reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/core/debugtools/sandbox/users/prasads/qdss/hal/stm/build/stmhal.scons#2 $
+#
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'DEBUGTRACE',
+   'SERVICES',
+   'HAL',
+   'DAL'
+]
+
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+TFUNNEL_DAL_SRC = ['${BUILDPATH}/DalTFunnel.c']
+
+env.AddLibrary(['MODEM_IMAGE','RPM_IMAGE','CORE_QDSP6_SW','WCN_IMAGE',
+   'CBSP_WCN_IMAGE','CORE_GSS','APPS_PROC'],
+   '${BUILDPATH}/tfunnel_dal',TFUNNEL_DAL_SRC)
+
+env.AddLibrary(['VENUS_VSS'],
+   '${BUILDPATH}/tfunnel_dal',TFUNNEL_DAL_SRC )
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/tfunnel_config.c'],
+      '8994_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8994/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8994/tfunnel_config.c'],
+      '9x25_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/9x25/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/9x25/tfunnel_config.c'],
+      '8x26_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/tfunnel_config.c'],
+      '8x10_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/tfunnel_config.c'],
+      '8092_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/tfunnel_config.c'],
+      '8084_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/tfunnel_config.c'],
+      '9x35_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/9x35/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/9x35/tfunnel_config.c'],
+      '8962_xml' : ['${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/daltfunnel.xml',
+                    '${BUILD_ROOT}/core/debugtrace/tfunnel/config/8974/tfunnel_config.c']					
+   })
+
+

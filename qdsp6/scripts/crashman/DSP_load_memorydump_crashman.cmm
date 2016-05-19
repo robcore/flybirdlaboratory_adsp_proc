@@ -1,0 +1,725 @@
+;****************************************************************
+;Filename : DSP_load_memorydump_crashman.cmm
+;****************************************************************
+
+ENTRY &Target_Name &UniqueNumber &ramdumpfile &OutputPath &ADSP_BUILDROOT &CurrentDirectory &Customer_Elf_Path &lite &slpi &asha &sofile &load_dump_full
+
+global &ramdumpstartadd
+global &choice
+global &CurrentDirectory
+global &ADSP_BUILDROOT
+global &Target_Name
+global &slpi
+global &asha
+global &OutputPath_Qurt
+global &OutputPath_temp
+global &OutputPath_ulog
+global &sofile
+global &load_dump_full
+global &pgt_flag
+
+&pgt_flag="False"
+
+&OutputPath_Qurt="&OutputPath\Qurt_logs"
+&OutputPath_temp="&OutputPath\temp"
+&OutputPath_ulog="&OutputPath\ulog"
+if "&slpi"==""
+(
+    &slpi="False"
+)
+if "&asha"==""
+(
+    &asha="False"
+)
+if "&sofile"==""
+(
+    &sofile="False"
+)
+if "&load_dump_full"==""
+(
+    &load_dump_full="False"
+)
+area.close
+winclear
+reset
+
+
+area.create Crashman
+area.open Crashman &OutputPath_temp\areainfo.txt
+WINPOS 0% 0. 50% 103% 0. 0. Crashman
+area.view Crashman 
+area.select Crashman
+
+sys.u
+
+print "##########################################################################################################################"
+print "############                Crashman Process logs                                                             ############"
+print "##########################################################################################################################"
+print 
+print 
+
+OPEN #1 "&OutputPath_temp\version_check.txt" /READ
+READ #1 %line &Python_version
+READ #1 %line &Perl_version
+READ #1 %line &Crashman_version
+print "&Crashman_version"
+print "&Python_version "
+print "&Perl_version"
+print 
+
+version_start:
+read #1 %line &linelst 
+&Endstring=string.mid("&linelst", 0, 0xe)
+if "&Endstring"=="VersionFileEnd"
+(
+    goto version_done_reading
+)
+print %ERROR "&linelst"
+goto version_start
+version_done_reading:
+
+CLOSE #1 
+
+if "&Customer_Elf_Path"=="False"
+(
+    &Customer_Elf_Path=""
+)
+print "Dump file Provided   :   &ramdumpfile "
+if "&slpi"=="True"
+(
+    print "SLPI build Provided  :   &ADSP_BUILDROOT "
+)
+else
+(
+    print "ADSP build Provided  :   &ADSP_BUILDROOT "
+)
+print "Elf path provided    :   &Customer_Elf_Path"
+print "Target Name Provided :   &Target_Name"
+print "Output Folder        :   &OutputPath"
+print 
+
+OPEN #1 "&OutputPath_temp\binarylength.txt" /READ
+READ #1 %line &BinaryLength
+CLOSE #1 
+&adspstartadd=0
+if OS.FILE(&OutputPath_temp\adspstartaddr.txt)
+(
+    OPEN #1 "&OutputPath_temp\adspstartaddr.txt" /READ
+    READ #1 %line &adspstartadd 
+    CLOSE #1
+)    
+
+if (&BinaryLength>52428800)
+(
+    &ramdumpstartadd=0x00000000
+)
+else 
+(
+    &ramdumpstartadd=&adspstartadd
+)
+
+print "##########################"
+if (&adspstartadd==0)
+(
+    dialog.message "From the dumps Crashman was not able to detect start address of ADSP.Please check if your crashman target argument is proper.This may also happen if ADSP PIL loading is not successful."
+    print "If Crashman arguments are fine and ADSP image loading is also fine, there might be start address detection improvement in crashman needed"
+    print "Please enter start address manually to continue" 
+    print "PLEASE ENTERT ADSP image START ADDRESS: (eg: 0x8c200000)"
+    print " "
+    print " "
+    print " "
+    print " "
+    enter &adspstartadd 
+) 
+
+print "ADSP Start Address: &adspstartadd"
+OPEN #1 "&OutputPath_temp\dumpformant.txt" /READ
+READ #1 %line &choice 
+CLOSE #1
+
+&cmd1 = "cd &CurrentDirectory"
+OS.Hidden &cmd1
+
+&tem="CrashmanCommand"
+&cmd="python &CurrentDirectory\CacheStatusAnalysis.py &tem &OutputPath &Target_Name &ramdumpfile &ADSP_BUILDROOT &Customer_Elf_Path"
+Os.hidden &cmd
+do DSP_connect_memdump_MPD.cmm &ramdumpfile &UniqueNumber &ramdumpstartadd &adspstartadd &OutputPath &ADSP_BUILDROOT &Target_Name &CurrentDirectory &Customer_Elf_Path
+
+
+&Qube_va_guestos="None"
+if ("&slpi"=="True")
+(
+    if (Y.EXIST(\\M8996AAAAAAAAQ1234\Global\start))
+    (
+       &Qube_va_guestos=address.offset(\\M8996AAAAAAAAQ1234\Global\start)
+    )
+)
+&cmd1="python &CurrentDirectory\SlpiCheck.py &Target_Name &OutputPath_temp &slpi &Qube_va_guestos"
+OS.hidden &cmd1
+&dsp_pgt_flag=0
+if OS.FILE(&OutputPath_temp\No_DSP_pgt.txt)
+(
+    OPEN #1 "&OutputPath_temp\No_DSP_pgt.txt" /READ
+    READ #1 %line &dsp_pgt_flag 
+    CLOSE #1
+)
+OPEN #1 "&OutputPath_temp\DSP_pgt_startaddr.txt" /READ
+READ #1 %line &address 
+CLOSE #1
+
+OPEN #1 "&OutputPath_temp\DSP_pgt_startaddr_f000.txt" /READ
+READ #1 %line &Qube_pa_guestos 
+CLOSE #1
+if ("&Qube_va_guestos"!="None")
+(
+    &Qube_va_guestos=(&Qube_va_guestos)&0xFFEFFFFF
+    mmu.create &Qube_va_guestos--(&Qube_va_guestos+0xFFFFF) &Qube_pa_guestos--(&Qube_pa_guestos+0xFFFFF)
+)
+else
+(
+    mmu.create 0xf0000000--(0xf0000000+0xFFFFF) &Qube_pa_guestos--(&Qube_pa_guestos+0xFFFFF)
+)    
+
+if (&adspstartadd!=&address)
+(
+    if (&BinaryLength<52428800)
+    (
+        &adspstartadd=&address
+        &ramdumpstartadd=&address
+        print "Re-Detecting ADSP Start Address: &adspstartadd"
+        cd &CurrentDirectory
+        do DSP_connect_memdump_MPD.cmm &ramdumpfile &UniqueNumber &ramdumpstartadd &adspstartadd &OutputPath &ADSP_BUILDROOT &Target_Name &CurrentDirectory &Customer_Elf_Path
+    )
+)
+OPEN #1 "&OutputPath_temp\DSP_pgt_startaddr_f000.txt" /READ
+READ #1 %line &Qube_pa_guestos 
+CLOSE #1
+mmu.create 0xf0000000--(0xf0000000+0xFFFFF) &Qube_pa_guestos--(&Qube_pa_guestos+0xFFFFF)
+cd &CurrentDirectory
+;******************************************************
+;;;Cache Flush Check
+;******************************************************
+var.new \QURTK_flush_cache_status_var
+var.set \QURTK_flush_cache_status_var=QURTK_flush_cache_status
+
+printer.file &OutputPath_temp\flush_cache.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.d.dump QURTK_flush_cache_status
+
+&command="perl &CurrentDirectory\CacheFlush.pl &OutputPath_temp"
+OS.Hidden &command
+
+&FlushFlag=v.value(\QURTK_flush_cache_status_var)
+if (&FlushFlag==1)
+(
+)
+else if (&FlushFlag==2)
+(
+    print "cache is flushed except the following information: L2VIC interrupt table and TCM dump are not flushed"
+    ;dialog.message "cache is flushed except the following information: L2VIC interrupt table and TCM dump are not flushed"
+)
+else if (&FlushFlag==3)
+(
+    print "Receive External NMI (watchdog) while handling a FATAL exception"
+    ;dialog.message "Receive External NMI (watchdog) while handling a FATAL exception"
+)
+else
+(
+    print %ERROR "Dumps provided are not Cache Flushed - Level2 of validating Dumps Failed with QURTK_flush_cache_status:&FlushFlag"
+    if "&asha"!="True"
+    (
+        dialog.message "Dumps provided are not Cache Flushed - Level2 of validating Dumps Failed"
+    )    
+)
+;Cache Flush Status Checking in Python Script
+var.new \QURTK_flush_cache_status_var
+var.set \QURTK_flush_cache_status_var=QURTK_flush_cache_status
+&CacheFlushFlag=v.value(\QURTK_flush_cache_status_var)
+
+var.new \QURT_system_state_var
+var.set \QURT_system_state_var=QURT_system_state
+&SystemStateFlag=v.value(\QURT_system_state_var)
+
+&tem="CacheFlushStatus"
+&cmd="python CacheStatusAnalysis.py &tem &OutputPath &CacheFlushFlag"
+Os.Hidden &cmd
+&tem="UpdateSystemStateMacro"
+&cmd="python CacheStatusAnalysis.py &tem &OutputPath &SystemStateFlag"
+Os.Hidden &cmd
+&tem="QurtSytemState"
+&cmd="python CacheStatusAnalysis.py &tem &OutputPath &SystemStateFlag &CacheFlushFlag"
+Os.Hidden &cmd
+
+;Updated Cache status in to a seperate file for DSPAnalysis python file
+printer.file &OutputPath_temp\flush_cache_py.txt
+printer.filetype ascii
+printer.size 0xfa,0xfa
+wp.v.v QURTK_flush_cache_status
+OPEN #1 "&OutputPath_temp\flush_cache_py.txt" /WRITE
+WRITE #1 &FlushFlag
+CLOSE #1 
+
+;***************************
+;;;Cache Flush Check End
+;***************************
+
+cd &CurrentDirectory
+;******************************************************
+;;;Loading page tables
+;******************************************************
+if "&load_dump_full"!="False"
+(
+    print "Processing ADSP_SMMU.py.It might take more than 3mins. Please wait..."
+    &cmd="python ADSP_SMMU.py &OutputPath_temp"
+    Os.Hidden &cmd
+    if OS.FILE(&OutputPath_temp\DSP_smmu_pagetables.cmm)
+    (
+        do &OutputPath_temp\DSP_smmu_pagetables.cmm 
+    )    
+)
+else
+(
+    if (("&dsp_pgt_flag"!="0x1"))
+    (
+	    if ("&pgt_flag"=="True")
+	    (
+	        if ("&slpi"=="True")
+	        (
+	            do DSP_load_pagetables_8994.cmm &OutputPath_temp
+	        )
+	        else if ("&Target_Name"=="8994")
+	        (
+	            do DSP_load_pagetables_8994.cmm &OutputPath_temp
+	        )    
+	        else if ("&Target_Name"=="8992")
+	        (
+	            do DSP_load_pagetables_8994.cmm &OutputPath_temp
+	        )    
+	        else if ("&Target_Name"=="8952")
+	        (
+	            do DSP_load_pagetables_8994.cmm &OutputPath_temp
+	        )    
+	        else if ("&Target_Name"=="8976")
+	        (
+	            do DSP_load_pagetables_8994.cmm &OutputPath_temp
+	        )    
+	        else if ("&Target_Name"=="8996")
+	        (
+	            do DSP_load_pagetables_8994.cmm &OutputPath_temp
+	        )    
+	        else
+	        (
+	            do DSP_load_pagetables.cmm &OutputPath_temp
+	        )
+	    )
+	    else
+	    (
+	        do DSP_load_pagetables.cmm &OutputPath_temp
+	    )
+        print "Loaded page tables"
+        printer.file &OutputPath_temp\Crashman_Log.txt
+        printer.filetype ascii
+        printer.size 0xfa,0xfa
+        wp.area.view Crashman
+    )
+    else
+    (
+        ;Loading Page tables only when dumps are cache flushed inorder not to be stopped in cmm 
+    )   
+)    
+;***************************
+;;;Loading page tables End
+;***************************
+
+;******************************************************
+;;;Start Dynamic SO loading
+;******************************************************
+if ("&Target_Name"=="8952")||("&Target_Name"=="8910")
+(
+    do rtld_debug.cmm &OutputPath
+    WINclear TOP
+    &cmd="python dynamicso.py &OutputPath &ADSP_BUILDROOT &sofile"
+    Os.Hidden &cmd
+    if OS.FILE(&OutputPath_temp\loaddynmaic.cmm)
+    (
+        do &OutputPath_temp\loaddynmaic.cmm 
+    )    
+)
+;******************************************************
+;;;Start Dynamic SO loading End
+;******************************************************
+
+;******************************************************
+;;;Run analy_qurt_error
+;******************************************************
+if ((&FlushFlag==1)||(&FlushFlag==2)||(&FlushFlag==3))
+(
+    area.select Crashman
+    print "Processing analy_qurt_error.cmm Script"
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    do analy_qurt_error.cmm
+    WINclear TOP
+    area.select Crashman
+    print "Processing analy_qurt_error.cmm Script Done"
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    printer.file &OutputPath_temp\Area_IO.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.Area IO
+)
+else
+(
+    ;Running analy qurt error script only when dumps are cache flushed inorder not to be stopped in cmm 
+)    
+;***************************
+;;;Run analy_qurt_error End
+;***************************
+;******************************************************
+;;;Update Error Cause and Cause2
+;******************************************************
+var.new \Cause_var
+var.set \Cause_var=QURT_error_info.status.cause
+&Cause=v.value(\Cause_var)
+
+var.new \Cause2_var
+var.set \Cause2_var=QURT_error_info.status.cause2
+&Cause2=v.value(\Cause2_var)
+
+&tem="ErrorCause"
+&cmd="python CacheStatusAnalysis.py &tem &Cause &Cause2 &OutputPath"
+Os.Hidden &cmd
+
+;****************************
+;;;Update Error Cause and Cause2 End
+;****************************
+;******************************************************
+;;;Update Core Dump Info
+;******************************************************
+do coredump_analysis.cmm &OutputPath &Target_Name
+
+;****************************
+;;;Update Core Dump Info End
+;****************************
+
+;******************************************************
+;;;Update Callstack
+;******************************************************
+
+if ((&FlushFlag==1)||(&FlushFlag==2)||(&FlushFlag==3))
+(
+    do callstack_analysis.cmm &OutputPath
+)
+else
+(
+    ;Running analy qurt error script only when dumps are cache flushed inorder not to be stopped in cmm 
+)    
+
+;************************
+;;;Update Callstack End
+;************************
+
+
+if "&lite"=="True"
+(
+    area.select Crashman
+    print "##########################"
+    print "Loading Dumps. Done"
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+)    
+else
+(
+    OPEN #1 "&OutputPath_temp\CheckDumpStatus.txt" /READ
+    READ #1 %line &DumpCheckFlag
+    CLOSE #1 
+
+    if "&Customer_Elf_Path"==""
+    (
+        &command1="perl &CurrentDirectory\DumpLoadCmd_Lite.pl &OutputPath &Target_Name &ramdumpfile &ADSP_BUILDROOT &ADSP_BUILDROOT &BinaryLength &adspstartadd &choice &DumpCheckFlag 0 &slpi &Qube_pa_guestos"
+        Os.Hidden &command1
+    )
+    else
+    (
+        &command1="perl &CurrentDirectory\DumpLoadCmd_Lite.pl &OutputPath &Target_Name &ramdumpfile &ADSP_BUILDROOT &Customer_Elf_Path &BinaryLength &adspstartadd &choice &DumpCheckFlag 1 &slpi &Qube_pa_guestos"
+        Os.Hidden &command1
+    )
+
+;******************************************************
+;;;Memory Heap Analysis 
+;******************************************************
+if ((&FlushFlag==1)||(&FlushFlag==2)||(&FlushFlag==3))
+(
+    area.select Crashman
+    print "Running heap analysis scripts.."
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    do memheap_analysis.cmm &OutputPath &Target_Name &CurrentDirectory &ADSP_BUILDROOT
+    area.select Crashman
+    print "Running heap analysis scripts.. Done.."
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+)
+else
+(
+    ;Running analy qurt error script only when dumps are cache flushed inorder not to be stopped in cmm 
+)    
+
+;************************
+;;;Memory Heap Analysis End
+;************************
+    
+;******************
+;;;Extract APR logs
+;******************
+if ((&FlushFlag==1)||(&FlushFlag==2)||(&FlushFlag==3))
+(
+    if ("&slpi"=="True")
+    (
+        ;no apr for sensor one
+    )
+    else if ("&Target_Name"=="8996")
+    (
+        if ("&AudioELF"=="M8996AAAAAAAAQ1234_AUDIO")
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(\\M8996AAAAAAAAQ1234_AUDIO\apr_log\apr_log_history)
+        )
+        else
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(apr_log_history)
+        )
+    )
+    else
+    (
+    if ("&Target_Name"=="8994")
+    (
+        if ("&AudioELF"=="M8994AAAAAAAAQ1234_AUDIO")
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(\\M8994AAAAAAAAQ1234_AUDIO\apr_log\apr_log_history)
+        )
+        else
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(apr_log_history)
+        )
+    )
+    else if ("&Target_Name"=="8992")
+    (
+        if ("&AudioELF"=="M8992AAAAAAAAQ1234_AUDIO")
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(\\M8992AAAAAAAAQ1234_AUDIO\apr_log\apr_log_history)
+        )
+        else
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(apr_log_history)
+        )
+    )
+    else if ("&Target_Name"=="8952")
+    (
+        if ("&AudioELF"=="M8952AAAAAAAAQ1234_AUDIO")
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(\\M8952AAAAAAAAQ1234_AUDIO\apr_log\apr_log_history)
+        )
+        else
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(apr_log_history)
+        )
+    )    
+    else if ("&Target_Name"=="8976")
+    (
+        if ("&AudioELF"=="M8976AAAAAAAAQ1234_AUDIO")
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(\\M8976AAAAAAAAQ1234_AUDIO\apr_log\apr_log_history)
+        )
+        else
+        (
+            data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(apr_log_history)
+        )
+    )    
+    else
+    (
+        data.save.binary &OutputPath_temp\your_dumpfile1.bin v.range(apr_log_history)
+    )
+    )
+
+    if ("&slpi"=="True")
+    (
+            ;no apr
+    )
+    else
+    (
+        &command="hist_parser.exe &OutputPath_temp\your_dumpfile1.bin"
+        printer.open "&OutputPath\apr_logs.txt"
+        wp.OS.window &command
+        printer.close
+    )
+)
+else
+(
+    ;apr logs only when dumps are cache flushed in order not to be stopped in cmm 
+)    
+    cd &CurrentDirectory
+
+;***********************
+;;;Extract APR logs End
+;***********************
+
+;******************************************************
+;;;Extract F3 logs
+;******************************************************
+
+    area.select Crashman
+    print "Processing F3 Logs..."
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    if ("&slpi"=="True")
+    (
+    )
+    else
+    (
+    	do recover_f3.cmm &OutputPath
+    	WINClear TOP
+    )
+    area.select Crashman
+    print "Processing F3 Logs...Done"
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    
+    if ("&slpi"=="True")
+    (
+    )
+    else if ("&Target_Name"=="8974")||("&Target_Name"=="8084")||("&Target_Name"=="8x26")||("&Target_Name"=="8626")||("&Target_Name"=="8994")||("&Target_Name"=="8992")||("&Target_Name"=="8996")||("&Target_Name"=="8952")||("&Target_Name"=="8976")
+    (
+        if OS.DIR(&OutputPath\SensorF3Logs)
+        (
+        )
+        else 
+        (
+            mkdir &OutputPath\SensorF3Logs
+        )
+        area.select Crashman
+        print "Processing Sensor F3 Logs..."
+        printer.file &OutputPath_temp\Crashman_Log.txt
+        printer.filetype ascii
+        printer.size 0xfa,0xfa
+        wp.area.view Crashman
+        do recover_f3.cmm SENSOR &OutputPath\SensorF3Logs
+        WINClear TOP
+        area.select Crashman
+        print "Processing Sensor F3 Logs...Done"
+        printer.file &OutputPath_temp\Crashman_Log.txt
+        printer.filetype ascii
+        printer.size 0xfa,0xfa
+        wp.area.view Crashman
+    )
+    if ("&Target_Name"=="8996")
+    (
+        if "&slpi"=="True"
+        (
+            ;No Audio for slpi
+        )
+        else
+        (
+            if OS.DIR(&OutputPath\AudioF3Logs)
+            (
+            )
+            else 
+            (
+                mkdir &OutputPath\AudioF3Logs
+            )
+            area.select Crashman
+            print "Processing Audio F3 Logs..."
+            do recover_f3.cmm AUDIO &OutputPath\AudioF3Logs
+            WINClear TOP
+            area.select Crashman
+            print "Processing Audio F3 Logs...Done"
+        )
+    )
+
+;**********************
+;;;Extract F3 logs End
+;**********************
+
+;******************************************************
+;;;Extract ulogs
+;******************************************************
+
+    print "Processing ULogDump_QuRTMPD.cmm Script..."
+    if ("&Target_Name"=="8996")
+    (
+        do &ADSP_BUILDROOT\core\power\ulog\scripts\ULogDump_QuRTMPD.cmm &OutputPath &AudioELF
+    )
+    do ULogDump_QuRTMPD.cmm &OutputPath_ulog &ELF
+    if "&smmu_enable"=="1"
+    (
+        do DSP_load_pagetables.cmm &OutputPath_temp
+        print "Before"
+        &command="ADSP_SMMU.py &OutputPath "
+        wp.OS.window "&command"
+        print " After"
+        do &OutputPath\DSP_smmu_pagetables.cmm
+        print "SMMU page table loaded on T32 "
+    )
+    area.select Crashman
+    print "Processing ULogDump_QuRTMPD.cmm Script...Done..."
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+;********************
+;;;Extract ulogs End
+;********************
+
+    do DSP_dump_info.cmm &OutputPath &CurrentDirectory &Target_Name &UniqueNumber &ADSP_BUILDROOT &ELF &SensorsELF
+    area.select Crashman
+    print "Processing DSP_dump_info.cmm Script...Done"
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    ; --------------- heap check script ------------------------------
+
+    &command2="python ulogIDtoTime.py &OutputPath_ulog\Merged_ulog.ulog"
+    Os.Hidden &command2
+    printer.file &OutputPath\dsp_def_heap.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    cd &CurrentDirectory
+    print "##########################"
+    print "Crashman Processing Done. Crashman logs at &OutputPath. "
+    print "Please refer  &OutputPath\DSPAnalysis.txt for crashman analysis. "
+    print "##########################"
+
+    printer.file &OutputPath_temp\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+    &file="&OutputPath_temp\Crashman_Log.bak"
+    if OS.FILE("&file")
+    (
+        RM "&file"
+    )    
+    printer.file &OutputPath\Crashman_Log.txt
+    printer.filetype ascii
+    printer.size 0xfa,0xfa
+    wp.area.view Crashman
+)
+if "&asha"=="True"
+(
+    quit
+)

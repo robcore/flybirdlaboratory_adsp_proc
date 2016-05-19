@@ -1,0 +1,51 @@
+#===============================================================================
+#
+# DAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/dal/build/SConscript#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/24/10   wd      Merged with SCMM/7x30/9x00/etc qcore tip.
+#
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+dal_root = '${BUILD_ROOT}/core/dal'
+env.Replace(DAL_ROOT = dal_root)
+
+#env.Append(CCFLAGS = " -fno-strict-aliasing -save-temps")
+env.Append(CCFLAGS = " -fno-strict-aliasing")
+
+if not os.environ.get('COMPILER','gcc').startswith('llvm'):
+        env.Append(CFLAGS = "-Werror ") 
+
+# Uncomment this line to enable testing for Device configuration
+#env.Replace(DEVCFG_BOOT_TEST = 'yes')
+
+if 'DEVCFG_BOOT_TEST' in env:
+   env.Append(CPPDEFINES = ["DEVCFG_BOOT_TEST"]) 
+
+# 9x25 doesnt support Dynamic Loading, flag exported by Platform. 
+# ..\adsp_proc\build\bsp\core_libs\build\core_libs.scons
+if 'USES_PLATFORM_FS' in env:
+    env.Append(CPPDEFINES = ["DEVCFG_DL_ENABLE"])
+    
+env.LoadSoftwareUnits()

@@ -1,0 +1,71 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/debugtrace/build/SConscript#1 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+if not os.environ.get('COMPILER','gcc').startswith('llvm'):
+   env.Append(CFLAGS = "-Werror ")
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+# these are accesible within QDSS
+#-------------------------------------------------------------------------------
+
+env.PublishProtectedApi('DEBUGTRACE',[
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/hal/inc",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/csr/hal/inc",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/src",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/tlmm/hal/inc",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/tracer/src",
+])
+
+if env.IsTargetEnable(['VENUS_VSS']):
+   env.PublishPrivateApi('DEBUGTRACE',[
+      "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/hal/inc",
+      "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/inc",
+   ])
+
+#-------------------------------------------------------------------------------
+#Define QDSS features here
+#----------------------------------
+### Place qdss_init in standalone mode ###
+#env.Replace(USES_QDSS_STANDALONE=True)
+
+### Always vote for QDSS clocks to be ON ###
+#env.Replace(USES_QDSS_CLK_ALWAYS_ON=True)
+
+#-------------------------------------------------------------------------------
+# Enviroment variables
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_STANDALONE' in env:
+   if 'CORE_QDSP6_SENSOR_SW' not in env.gvars() and 'CORE_QDSP6_AUDIO_SW' not in env.gvars():
+      env.Append(CCFLAGS = " -DQDSS_STANDALONE_MODE=1")
+
+if env.IsTargetEnable(['VENUS_VSS']):
+   env.Append(CCFLAGS = " -DTRACER_VENUS_BUILD")
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

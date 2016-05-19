@@ -1,0 +1,69 @@
+#===============================================================================
+#
+# HAP AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/opendsp.adsp/2.6/examples/avs/audproc/Buf/BufLib/build/BufLib.scons#1 $
+#  $DateTime: 2014/04/14 22:08:10 $
+#  $Author: coresvc $
+#  $Change: 5686658 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+core_public_apis = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+env.RequireRestrictedApi('HAP')
+env.RequirePublicApi('HAP_AVS')
+
+env.PublishPrivateApi('HAP',[
+   '../inc',
+   ])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '..'
+LIBNAME = 'BufLib'
+
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# Generate regular source file list
+avs_reg_sources = env.GlobSourceFiles(['src/*.cpp', 'src/*.c','/src/qdsp6/*.S'], SRCPATH,posix=True)
+
+# Generate stub source file list
+avs_stub_sources = env.GlobSourceFiles(['/stub_src/*.cpp', '/stub_src/*.c', '/stub_src/*.S'], SRCPATH,posix=True)
+
+# Generate proprietary source file list
+avs_prop_sources = []
+
+
+#import pdb; pdb.set_trace()
+
+env.AddLibrary(['HAP_AVS_ADSP'], '${BUILDPATH}/'+LIBNAME, avs_reg_sources)
+
+
+
+
+

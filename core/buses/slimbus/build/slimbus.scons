@@ -1,0 +1,159 @@
+#===============================================================================
+#
+# SLIMbus Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012, 2013, 2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.adsp/2.6.1/buses/slimbus/build/slimbus.scons#1 $
+#  $DateTime: 2014/10/16 12:45:40 $
+#  $Author: pwbldsvc $
+#  $Change: 6781644 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/09/14   MJS     Add support for 8992.
+# 08/01/14   MJS     Add support for 8996.
+# 03/25/14   MJS     Don't enable QMI service for 9x25/9x35.
+# 12/12/13   MJS     Add support for 8994.
+# 12/06/13   MJS     Non-slimbus MDM image size reduction support.
+# 08/19/13   MJS     Add support for 9x35.
+# 06/19/13   MJS     Add support for 8962.
+# 05/06/13   MJS     Add support for 8084.
+# 03/26/13   MJS     Don't compile for 8x10.
+# 03/11/13   MJS     Add systemdrivers pmic include.
+# 01/25/13   MJS     Use QMI service from QMIMSGS area.
+# 11/29/12   MJS     QMI service support, start QMI service after ADSPPM.
+# 09/20/12   MJS     Support for binary compatibility.
+# 01/20/12   MJS     Initial revision.
+#===============================================================================
+import os
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_SLIMBUS', [
+   "${INC_ROOT}/core/buses/slimbus/inc",
+   "${INC_ROOT}/core/buses/slimbus/src/common",
+   "${INC_ROOT}/core/buses/slimbus/src/dal",
+   "${INC_ROOT}/core/buses/slimbus/hw/v1p1",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'HWENGINES',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_PMIC',
+   'POWER',
+   'KERNEL',   
+   'MPROC',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+env.RequirePublicApi(['SLIMBUS'], area='QMIMSGS')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SLIMBUS_SOURCES = [
+   '${BUILDPATH}/src/common/SlimBus.c',
+   '${BUILDPATH}/src/common/SlimBusMaster.c',
+   '${BUILDPATH}/src/common/SlimBusChanSched.c',
+   '${BUILDPATH}/src/common/SlimBusSat.c',
+   '${BUILDPATH}/src/dal/SlimBusDal.c',
+   '${BUILDPATH}/src/dal/SlimBusTarget.c',
+   '${BUILDPATH}/src/dal/SlimBusBamLib.c',
+   '${BUILDPATH}/hw/v1p1/HALsb.c',
+]
+
+slimbus_objs = env.Object(SLIMBUS_SOURCES)
+
+slimbus_lib = env.Library('${BUILDPATH}/SlimBus', slimbus_objs)
+
+SLIMBUS_QMI_SOURCES = [
+   '${BUILDPATH}/src/qmi/slimbus_qmi_svc.c',
+]
+
+slimbus_qmi_objs = env.Object(SLIMBUS_QMI_SOURCES)
+
+slimbus_qmi_lib = env.Library('${BUILDPATH}/slimbus_qmi', slimbus_qmi_objs)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage('CORE_QDSP6_SW', slimbus_lib)
+
+env.AddLibsToImage('CORE_QDSP6_SW', slimbus_qmi_lib)
+
+#---------------------------------------------------------------------------
+# RCINIT
+#---------------------------------------------------------------------------
+if 'USES_RCINIT' in env and not env['MSM_ID'] in ['8x10', '9x25', '9x35'] and not 'USES_MDM9X35_VOCODER' in env:
+   RCINIT_IMG = ['CORE_QDSP6_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_SLIMBUS_FUSION_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_7',                # required
+     'init_name'                  : 'slimbus_qmi',                   # required
+     'init_function'              : 'slimbus_qmi_init',              # required
+     'dependencies'               : ['dalsys','qmi_fw', 'adsppm']
+    })
+
+#---------------------------------------------------------------------------
+# Device Config
+#---------------------------------------------------------------------------
+if 'USES_DEVCFG' in env and not 'USES_MDM9X35_VOCODER' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8974_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8974.xml', 
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8974.c'],
+      '9x25_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_9x25.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_9x25.c'],
+      '8x26_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8x26.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8x26.c'],
+      '8092_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8092.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8092.c'],
+      '8084_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8084.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8084.c'],
+      '8962_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8962.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8962.c'],
+      '9x35_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_9x35.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_9x35.c'],
+      '8992_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8994.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8994.c'],
+      '8994_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8994.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8994.c'],
+      '8996_xml'    : ['${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8996.xml',
+                       '${BUILD_ROOT}/core/buses/slimbus/config/slimbus_adsp_8996.c']
+   })
+

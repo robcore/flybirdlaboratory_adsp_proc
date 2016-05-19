@@ -1,0 +1,62 @@
+#===============================================================================
+#
+# AVS AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2013-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/avs.adsp/2.6.1/elite/module_interfaces/capi_v2_appi_wrapper/build/capi_v2_appi_wrapper.scons#3 $
+#  $DateTime: 2014/12/26 03:33:20 $
+#  $Author: svutukur $
+#  $Change: 7198050 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+core_public_apis = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+env.RequireRestrictedApi(['AVS', 'MODULE_INTERFACES_API', 'MODULE_INTERFACES_UTILS', 'CAPI_V2_APPI_WRAPPER'])
+env.RequireProtectedApi('AVS')
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '..'
+LIBNAME = 'capi_v2_appi_wrapper'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# Generate regular source file list
+avs_reg_sources = env.GlobSourceFiles(['/src/*.cpp', '/src/*.c', '/src/*.S'], SRCPATH,posix=True)
+
+# Generate stub source file list
+avs_stub_sources = []
+
+# Genate proprietary source file list
+avs_prop_sources = []
+
+
+
+#import pdb; pdb.set_trace()
+if 'USES_AVS_LIBRARY_BUILDER' in env:
+   env.AddAvsLibrary(['AVS_ADSP'], '${BUILDPATH}/'+LIBNAME,
+      [avs_reg_sources, avs_stub_sources, avs_prop_sources], PACK_SRC=True)
+
+

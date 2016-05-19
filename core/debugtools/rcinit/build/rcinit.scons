@@ -1,0 +1,344 @@
+# vi: tw=128 ts=3 sw=3 et
+# @file rcinit.scons
+# @brief This file contains the API for the Run Control Framework, API 2.0
+#===============================================================================
+# NOTE: The @brief description above does not appear in the PDF.
+# The tms_mainpage.dox file contains the group/module descriptions that
+# are displayed in the output PDF generated using Doxygen and LaTeX. To
+# edit or update any of the group/module text in the PDF, edit the
+# tms_mainpage.dox file or contact Tech Pubs.
+#===============================================================================
+#===============================================================================
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary.
+#===============================================================================
+#===============================================================================
+# Edit History
+# $Header: //components/rel/core.adsp/2.6.1/debugtools/rcinit/build/rcinit.scons#1 $
+# $DateTime: 2014/10/16 12:45:40 $
+# $Change: 6781644 $
+# $Author: pwbldsvc $
+#===============================================================================
+
+Import('env')
+
+# BUILD_TAGS For Deliverable (Supported Build_Objects)
+
+BUILD_TAGS = [
+
+   'CORE_APPS',                  # Domain(REX + TN)
+   'CORE_EOS',                   # Domain(REX + EOS)
+   'CORE_GSS',                   # Domain(REX + GSS)
+   'CORE_MODEM',                 # Domain(Root + Modem)
+   'CORE_RPM',                   # Domain(REX + RPM)
+   'CORE_VPU',                   # Domain(REX + VPU)
+   'CORE_WCN',                   # Domain(REX + WCN)
+
+   'CORE_ROOT_PD',               # Domain(Root)
+   'CORE_USER_PD',               # Domain(User)
+
+   'CORE_QDSP6_SW',              # Domain(Root + Audio)
+   'MODEM_MODEM',                # Domain(Root + Modem)
+   'CORE_QDSP6_AUDIO_SW',        # Domain(User Audio)
+   'CORE_QDSP6_MODEM_SW',        # Domain(User Modem)
+   'CORE_QDSP6_SENSOR_SW',       # Domain(User Sensors)
+   'CNSS_IMAGE',                 # Domain(REX + EOS)
+]
+
+# Required Namespaces
+import os
+import fnmatch
+
+# OPTIONAL MANUAL TUNING (SMALL RESOURCE TARGETS)
+
+if env.IsTargetEnable([ 'CORE_EOS', 'CNSS_IMAGE', ]):
+   env.Append(CPPDEFINES = ["RCINIT_DALSYS_THREAD"])             # DALSYS TASK API (WORKLOOP vs THREAD)
+   env.Append(CPPDEFINES = ["RCINIT_TASK_MAX=16"])               # TRACKING SIZE INIT/TERM HANDSHAKE TABLES
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_MSG_SWEVT"])         # EXCLUDE USE MSG MACRO
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_TRACER_SWEVT"])      # EXCLUDE USE QDSS TRACER
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_POLICY_EXTENSION"])  # EXCLUDE POLICY EXTENSION
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_TERMINATION"])       # EXCLUDE TERMINATION PROCESSING
+
+# OPTIONAL MANUAL TUNING (ARM RESOURCE TARGETS)
+
+if env.IsTargetEnable([ 'CORE_APPS', 'CORE_EOS', 'CNSS_IMAGE', ]):
+   #env.Append(CPPDEFINES = ["RCINIT_DALSYS_THREAD"])             # DALSYS TASK API (WORKLOOP vs THREAD)
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_KERNEL_DAL_TLS"])    # EXCLUDE KERNEL DAL TLS
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_KERNEL_POSIX_TLS"])  # EXCLUDE KERNEL POSIX TLS
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_KERNEL_QURT_TLS"])   # EXCLUDE KERNEL QURT TLS
+
+# OPTIONAL MANUAL TUNING (Q6 RESOURCE TARGETS)
+
+if env.IsTargetEnable([ 'CORE_ROOT_PD', 'CORE_USER_PD', 'CORE_MODEM', 'CORE_QDSP6_SW', 'MODEM_MODEM', ]):
+   #env.Append(CPPDEFINES = ["RCINIT_DALSYS_THREAD"])             # DALSYS TASK API (WORKLOOP vs THREAD)
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_KERNEL_DAL_TLS"])    # EXCLUDE KERNEL DAL TLS
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_KERNEL_POSIX_TLS"])  # EXCLUDE KERNEL REX TLS
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_KERNEL_REX_TLS"])    # EXCLUDE KERNEL REX TLS
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+env.VariantDir('${BUILDPATH}', "${BUILD_ROOT}/core/debugtools/rcinit/src/", duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External Dependency
+#-------------------------------------------------------------------------------
+
+#env.RequireExternalApi([
+#   'XYZ',
+#])
+
+#-------------------------------------------------------------------------------
+# Internal Dependency
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+   'DAL',
+   'TMS',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',   # needs to be last also contains wrong comdef.h
+])
+
+env.RequireRestrictedApi([
+   'TMS_RESTRICTED',
+   'DEBUGTOOLS',
+])
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+RCINIT_COMMON = [
+   '${BUILDPATH}/rcinit_init.c',
+   '${BUILDPATH}/rcinit_internal.c',
+   '${BUILDPATH}/rcinit_lookup.c',
+   #'${BUILDPATH}/rcinit_mini.c',
+   #'${BUILDPATH}/rcinit_ut.c',
+]
+
+RCINIT_REX = [
+   '${BUILDPATH}/rcinit_rex.c',
+   '${BUILDPATH}/rcinit_rex_hs_list.c',
+   '${BUILDPATH}/rcinit_rex_task.c',
+   '${BUILDPATH}/rcinit_rex_term.c',
+   #'${BUILDPATH}/rcinit_rex_tls.c',
+]
+
+RCINIT_REX_VOID = [
+   '${BUILDPATH}/rcinit_rex_void.c',
+]
+
+RCINIT_DAL = [
+   '${BUILDPATH}/rcinit_dal.c',
+   #'${BUILDPATH}/rcinit_dal_hs_list.c',
+   '${BUILDPATH}/rcinit_dal_task.c',
+   #'${BUILDPATH}/rcinit_dal_term.c',
+   #'${BUILDPATH}/rcinit_dal_tls.c',
+]
+
+RCINIT_DAL_VOID = [
+   '${BUILDPATH}/rcinit_dal_void.c',
+]
+
+RCINIT_QURT = [
+   '${BUILDPATH}/rcinit_qurt.c',
+   '${BUILDPATH}/rcinit_qurt_hs_list.c',
+   #'${BUILDPATH}/rcinit_qurt_task.c',
+   '${BUILDPATH}/rcinit_qurt_term.c',
+   '${BUILDPATH}/rcinit_qurt_tls.c',
+]
+
+RCINIT_QURT_VOID = [
+   '${BUILDPATH}/rcinit_qurt_void.c',
+]
+
+RCINIT_POSIX = [
+   '${BUILDPATH}/rcinit_posix.c',
+   #'${BUILDPATH}/rcinit_posix_hs_list.c',
+   #'${BUILDPATH}/rcinit_posix_task.c',
+   #'${BUILDPATH}/rcinit_posix_term.c',
+   '${BUILDPATH}/rcinit_posix_tls.c',
+]
+
+RCINIT_POSIX_VOID = [
+   '${BUILDPATH}/rcinit_posix_void.c',
+]
+
+RCINIT_MINI = [
+
+]
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+# Common to All Targets
+
+env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit', RCINIT_COMMON)
+
+# REX Preferred Over DAL
+
+if 'USES_REX' in env:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_rex', RCINIT_REX)
+else:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_rex_void', RCINIT_REX_VOID)
+
+if 'USES_DAL' in env:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_dal', RCINIT_DAL)
+else:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_dal_void', RCINIT_DAL_VOID)
+
+# QURT Preferred Over POSIX
+
+if 'USES_QURT' in env:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_qurt', RCINIT_QURT)
+else:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_qurt_void', RCINIT_QURT_VOID)
+
+if 'USES_POSIX' in env:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_posix', RCINIT_POSIX)
+else:
+   env.AddLibrary(BUILD_TAGS, '${BUILDPATH}/rcinit_posix_void', RCINIT_POSIX_VOID)
+
+#-------------------------------------------------------------------------------
+# Task Provisioning Information
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask( # BOOTSTRAP
+      BUILD_TAGS,
+      {
+         'sequence_group'             : 'RCINIT_GROUP_0',
+         'thread_name'                : 'rcinit',
+         'thread_type'                : 'RCINIT_TASK_DALTASK',
+         'thread_entry'               : 'RCINIT_NULL', # BOOTSTRAP
+         'priority_amss_order'        : 'SHARED_DRIVER_SERVICE_PRI_ORDER',
+         'stack_size_bytes'           : '6144',
+      })
+
+#-------------------------------------------------------------------------------
+# Tracer Software Events
+#-------------------------------------------------------------------------------
+
+RCINIT_SWE_EVENTS = [
+
+   ['RCINIT_SWE_INIT_TIMEO',   'RCINIT Init TimeO    %x %x', 'T'], # Group Process Timeout
+   ['RCINIT_SWE_INIT_BAIL',    'RCINIT Init Bail     %x %x', 'T'], # Groups Process Timeout
+
+   ['RCINIT_SWE_TERM_TIMEO',   'RCINIT Term TimeO    %x %x', 'T'], # Group Process Timeout
+   ['RCINIT_SWE_TERM_BAIL',    'RCINIT Term Bail     %x %x', 'T'], # Groups Process Timeout
+
+   ['RCINIT_SWE_INIT_GROUP_0', 'RCINIT_GROUP_0 Init',        'T'], # Group 0 Begin
+   ['RCINIT_SWE_INIT_GROUP_1', 'RCINIT_GROUP_1 Init',        'T'], # Group 1 Begin
+   ['RCINIT_SWE_INIT_GROUP_2', 'RCINIT_GROUP_2 Init',        'T'], # Group 2 Begin
+   ['RCINIT_SWE_INIT_GROUP_3', 'RCINIT_GROUP_3 Init',        'T'], # Group 3 Begin
+   ['RCINIT_SWE_INIT_GROUP_4', 'RCINIT_GROUP_4 Init',        'T'], # Group 4 Begin
+   ['RCINIT_SWE_INIT_GROUP_5', 'RCINIT_GROUP_5 Init',        'T'], # Group 5 Begin
+   ['RCINIT_SWE_INIT_GROUP_6', 'RCINIT_GROUP_6 Init',        'T'], # Group 6 Begin
+   ['RCINIT_SWE_INIT_GROUP_7', 'RCINIT_GROUP_7 Init',        'T'], # Group 7 Begin
+   ['RCINIT_SWE_INITGROUPS',   'RCINIT Init Groups',         'T'], # Groups Complete
+
+   ['RCINIT_SWE_TERMGROUPS',   'RCINIT Term Groups',         'T'], # Groups Begin
+   ['RCINIT_SWE_TERM_GROUP_7', 'RCINIT_GROUP_7 Term',        'T'], # Group 7 End
+   ['RCINIT_SWE_TERM_GROUP_6', 'RCINIT_GROUP_6 Term',        'T'], # Group 6 End
+   ['RCINIT_SWE_TERM_GROUP_5', 'RCINIT_GROUP_5 Term',        'T'], # Group 5 End
+   ['RCINIT_SWE_TERM_GROUP_4', 'RCINIT_GROUP_4 Term',        'T'], # Group 4 End
+   ['RCINIT_SWE_TERM_GROUP_3', 'RCINIT_GROUP_3 Term',        'T'], # Group 3 End
+   ['RCINIT_SWE_TERM_GROUP_2', 'RCINIT_GROUP_2 Term',        'T'], # Group 2 End
+   ['RCINIT_SWE_TERM_GROUP_1', 'RCINIT_GROUP_1 Term',        'T'], # Group 1 End
+   ['RCINIT_SWE_TERM_GROUP_0', 'RCINIT_GROUP_0 Term',        'T'], # Group 0 End
+
+   ['RCINIT_SWE_INIT_FUNC_R',  'RCINIT Init Func Reg %x %x', 'T'], # Func Register
+   ['RCINIT_SWE_INIT_FUNC_U',  'RCINIT Init Func Urg %x %x', 'T'], # Func Unregister
+   ['RCINIT_SWE_INIT_FUNC_RN', 'RCINIT Init Func Run %x %x', 'T'], # Func Run
+   ['RCINIT_SWE_INIT_FUNC_XT', 'RCINIT Init Func Ret %x %x', 'T'], # Func Return
+
+   ['RCINIT_SWE_TERM_FUNC_R',  'RCINIT Term Func Reg %x %x', 'T'], # Func Register
+   ['RCINIT_SWE_TERM_FUNC_U',  'RCINIT Term Func Urg %x %x', 'T'], # Func Unregister
+   ['RCINIT_SWE_TERM_FUNC_RN', 'RCINIT Term Func Run %x %x', 'T'], # Func Run
+   ['RCINIT_SWE_TERM_FUNC_XT', 'RCINIT Term Func Run %x %x', 'T'], # Func Return
+
+   ['RCINIT_SWE_INIT_TASK_R',  'RCINIT Init Task Reg %x %x', 'T'], # Task Register
+   ['RCINIT_SWE_INIT_TASK_RI', 'RCINIT Init Task RgI %x %x', 'T'], # Task Register Ignore
+   ['RCINIT_SWE_INIT_TASK_U',  'RCINIT Init Task Urg %x %x', 'T'], # Task Unregister
+   ['RCINIT_SWE_INIT_TASK_UO', 'RCINIT Init Task UrO %x %x', 'T'], # Task Unregister Order
+   ['RCINIT_SWE_INIT_TASK',    'RCINIT Init Task Def %x %x', 'T'], # Task Define
+   ['RCINIT_SWE_INIT_TASK_RN', 'RCINIT Init Task Run %x %x', 'T'], # Task Run
+   ['RCINIT_SWE_INIT_TASK_RS', 'RCINIT Init Task Rst %x %x', 'T'], # Task Restart
+   ['RCINIT_SWE_INIT_TASK_HS', 'RCINIT Init Task HS  %x %x', 'T'], # Task HS
+   ['RCINIT_SWE_INIT_TASK_HI', 'RCINIT Init Task HIg %x %x', 'T'], # Task HS Ignore
+   ['RCINIT_SWE_INIT_TASK_E',  'RCINIT Init Task End %x %x', 'T'], # Task Exception End
+   ['RCINIT_SWE_INIT_TASK_XT', 'RCINIT Init Task Xit %x %x', 'T'], # Task Programatic Exit
+
+   ['RCINIT_SWE_TERM_TASK_R',  'RCINIT Term Task Reg %x %x', 'T'], # Task Register
+   ['RCINIT_SWE_TERM_TASK_RI', 'RCINIT Term Task RgI %x %x', 'T'], # Task Register Ignore
+   ['RCINIT_SWE_TERM_TASK_U',  'RCINIT Term Task Urg %x %x', 'T'], # Task Unregister
+   ['RCINIT_SWE_TERM_TASK_UO', 'RCINIT Term Task UrO %x %x', 'T'], # Task Unregister Order
+   ['RCINIT_SWE_TERM_TASK',    'RCINIT Term Task Def %x %x', 'T'], # Task Define
+   ['RCINIT_SWE_TERM_TASK_RN', 'RCINIT Term Task Run %x %x', 'T'], # Task Run
+   ['RCINIT_SWE_TERM_TASK_RS', 'RCINIT Term Task Rst %x %x', 'T'], # Task Restart
+   ['RCINIT_SWE_TERM_TASK_HS', 'RCINIT Term Task HS  %x %x', 'T'], # Task HS
+   ['RCINIT_SWE_TERM_TASK_HI', 'RCINIT Term Task HIg %x %x', 'T'], # Task HS Ignore
+   ['RCINIT_SWE_TERM_TASK_E',  'RCINIT Term Task End %x %x', 'T'], # Task Exception End
+   ['RCINIT_SWE_TERM_TASK_XT', 'RCINIT Term Task Xit %x %x', 'T'], # Task Programatic Exit
+
+]
+
+if 'USES_QDSS_SWE' in env and len(RCINIT_SWE_EVENTS) != 0:
+   env.Append(CPPDEFINES = ["RCINIT_TRACER_SWEVT"])
+   env.Append(CPPPATH = ['${BUILD_ROOT}/core/debugtools/rcinit/build/${BUILDPATH}'])
+   env.SWEBuilder(['${BUILD_ROOT}/core/debugtools/rcinit/build/${BUILDPATH}/rcinit_tracer_swe.h'], None)
+   env.AddSWEInfo(BUILD_TAGS, RCINIT_SWE_EVENTS)
+else:
+   env.Append(CPPDEFINES = ["RCINIT_EXCLUDE_TRACER_SWEVT"])
+
+#-------------------------------------------------------------------------------
+# DALCFG Image "Static" Configuration Items
+#-------------------------------------------------------------------------------
+
+# IMAGE OWNER will deliver the configuration file; an example is available, but
+# the configuration used for production will be under IMAGE OWNER control.
+
+#if 'USES_DEVCFG' in env:
+
+   RCINIT_XML_CONFIG_FILE = 'rcinit_dalcfg.xml'
+
+#   fileXMLConfig = env.FindConfigFiles(RCINIT_XML_CONFIG_FILE)
+#   if fileXMLConfig is not None and len(fileXMLConfig) != 0:
+#      env.AddDevCfgInfo([ 'DAL_DEVCFG_IMG' ],
+#         {
+#            #'devcfg_xml' : fileXMLConfig # APPS_TN
+#            'soc_xml' : [ fileXMLConfig[0] ] # ADSP2, MPSS
+#         })
+
+   def getFileLocation(env, path, fileToFind):
+      for root, dirs, files in os.walk(path):
+         for filename in fnmatch.filter(files, fileToFind):
+            return os.path.join(root, filename)
+      return None
+
+   fileXMLConfig = None
+   if env.has_key('IMAGE_ROOT'):
+      fileXMLConfig = getFileLocation(env, env.get('IMAGE_ROOT'), RCINIT_XML_CONFIG_FILE)
+
+   if fileXMLConfig is not None:
+      env.AddDevCfgInfo(DEVCFG_IMG,
+         {
+            #'devcfg_xml' : fileXMLConfig # APPS_TN
+            'soc_xml' : [ fileXMLConfig ] # ADSP2, MPSS
+         })
+
+#-------------------------------------------------------------------------------
+# PACKOUT Configuration
+#-------------------------------------------------------------------------------
+
+#CLEAN_PACK_FILES = [
+#   '${BUILDPATH}/rcinit_packout.c',
+#]
+#
+#env.CleanPack(BUILD_TAGS, CLEAN_PACK_FILES)

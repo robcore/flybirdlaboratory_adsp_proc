@@ -1,0 +1,131 @@
+;****************************************************************
+; filename: DSP_connect_loadDSP.cmm
+; 	this script is utilized to connect to VPMSM8974, load SMD data structure and load DSP image
+; please enter
+;	1. the Port ID : used to connect VPMSM8974	
+;	   required
+;	2. SMD FLAG :  used to indicate to load share memory data structure
+;	   optional, default value is not loading SMD
+; usage:
+; 	DSP_connect_loadDSP <Port number> <SMD>
+; example:
+; 	DSP_connect_loadDSP 5000 SMD
+; 	DSP_connect_loadDSP 5001
+;****************************************************************
+
+entry &SMD_flag
+global &Qube_va_guestos
+global &Qube_pa_guestos
+global &Qube_va_userpd1
+global &Qube_pa_userpd1
+global &adspbaseadd
+global &ELF_reloc
+print "You have entered &p_Port_ID as Port ID to connect APQ8084"
+
+TOOLBAR ON
+STATUSBAR ON
+;WINPAGE.RESET
+
+;******************************************************************
+; Reset QDSP6 through intercomm command
+;******************************************************************
+
+;----------------------------------------------------------------------------
+; Choose hex mode for input
+;----------------------------------------------------------------------------
+radix hex
+area
+area.select
+
+;----------------------------------------------------------------------------
+; Set the desired CPU
+;----------------------------------------------------------------------------
+sys.cpu HexagonV5L
+;----------------------------------------------------------------------------
+; Attach to the Virtio simulation
+;----------------------------------------------------------------------------
+sys.mcdconfig arch=v5l port=&p_Port_ID simargs=""
+sys.mode.attach
+
+;----------------------------------------------------------------------------
+; Setup look and feel
+;----------------------------------------------------------------------------
+
+;----------------------------------------------------------------------------
+; Print banner
+;----------------------------------------------------------------------------
+print "VPMSM8974: LPASS"
+;----------------------------------------------------------------------------
+; Open the register set
+;----------------------------------------------------------------------------
+register /spotlight
+
+;----------------------------------------------------------------------------
+; Open the source listing
+;----------------------------------------------------------------------------
+data.list
+
+;----------------------------------------------------------------------------
+;Recall and Define History File
+;----------------------------------------------------------------------------
+autostore , history
+
+sYmbol.SourcePath.reset
+
+;----------------------------------------------------------------------------
+; load SMD structure	
+;----------------------------------------------------------------------------
+if "&SMD_flag"=="SMD"
+(
+	print "loading SMD structure ......."
+	d.load.binary .\qdsp6\misc\smem_initialized_VPMSM8974.bin eahb:0x0fa00000 /noclear /nosymbol
+	print "SMD structure loaded. Done"
+)
+;----------------------------------------------------------------------------
+; load DSP Image
+;----------------------------------------------------------------------------
+print "PLEASE ENTERT ADSP image START ADDRESS: (eg: 0x00000000)" 
+print " "
+print " "
+print " "
+print " "
+enter &adspbaseadd 
+
+print "loading DSP Image ......."
+; set auto run Osam off in default, 8974 won't run
+&autoRunOsam=0 
+
+if OS.FILE(.\build\ms\M8084AAAAAAAAQ1234_reloc.elf)
+(
+    d.load.elf .\build\ms\M8084AAAAAAAAQ1234_reloc.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+    d.load.elf .\build\ms\MM8084AAAAAAAAQ1234_SENSOR_reloc.elf /NOCODE /NOREG /NOCLEAR /NOMAP /strippart "adsp_proc" /sourcepath "."
+    &ELF_reloc="M8084AAAAAAAAQ1234_reloc"
+    print "8084 ADSP MPD Image loaded. Done"  
+ 
+)
+
+&Qube_va_guestos=address.offset(start);
+&Qube_pa_guestos=&adspbaseadd
+
+
+print "DSP guest OS address vritual=0x" &Qube_va_guestos " physical=0x" &Qube_pa_guestos
+&Qube_va_userpd1=0x2da00000
+&Qube_pa_userpd1=0x0f100000
+print "DSP UserPD1 address vritual=0x" &Qube_va_userpd1 " physical=0x" &Qube_pa_userpd1
+
+;----------------------------------------------------------------------------
+; set breakpoints
+;----------------------------------------------------------------------------
+b.s \\&ELF_reloc\main\main /onchip
+
+;D.S D:&Qube_pa_guestos+0x30 %LE %LONG 1
+;D.S D:&Qube_pa_guestos+0x34 %LE %LONG 1
+;D.S D:&Qube_pa_guestos+0x38 %LE %LONG 1
+
+;TERM.METHOD ANGEL QURTK_handle_trap0
+;b.s QURTK_handle_trap0 /onchip
+; This is where your printf messages will be displayed
+;term.gate
+
+end
+
